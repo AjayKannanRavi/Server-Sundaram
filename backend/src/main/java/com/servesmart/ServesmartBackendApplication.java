@@ -40,6 +40,12 @@ public class ServesmartBackendApplication {
             }
 
             String seedTenantId = appWorkflowProperties.getSeed().getDefaultTenantId();
+            String adminUsername = appWorkflowProperties.getSeed().getAdminUsername();
+            String adminPassword = appWorkflowProperties.getSeed().getAdminPassword();
+            String ownerUsername = appWorkflowProperties.getSeed().getOwnerUsername();
+            String ownerPassword = appWorkflowProperties.getSeed().getOwnerPassword();
+            String kitchenUsername = appWorkflowProperties.getSeed().getKitchenUsername();
+            String kitchenPassword = appWorkflowProperties.getSeed().getKitchenPassword();
             // 0. Ensure Tenant Database exists for Hotel 1
             try {
                 databaseProvisioner.createTenantDatabase(seedTenantId);
@@ -77,11 +83,16 @@ public class ServesmartBackendApplication {
 
                 // 2. Ensure Staff exist
                 if (staffRepository.count() == 0) {
+                    if (adminPassword == null || adminPassword.isBlank()
+                            || ownerPassword == null || ownerPassword.isBlank()
+                            || kitchenPassword == null || kitchenPassword.isBlank()) {
+                        throw new IllegalStateException("Seed staff passwords are required. Set APP_SEED_ADMIN_PASSWORD, APP_SEED_OWNER_PASSWORD, and APP_SEED_KITCHEN_PASSWORD in .env.");
+                    }
 
                     com.servesmart.entity.Staff admin = new com.servesmart.entity.Staff();
                     admin.setName("Admin User");
-                    admin.setUsername("admin");
-                    admin.setPassword(org.springframework.security.crypto.bcrypt.BCrypt.hashpw("password123", org.springframework.security.crypto.bcrypt.BCrypt.gensalt()));
+                    admin.setUsername(adminUsername);
+                    admin.setPassword(org.springframework.security.crypto.bcrypt.BCrypt.hashpw(adminPassword, org.springframework.security.crypto.bcrypt.BCrypt.gensalt()));
                     admin.setRole(com.servesmart.entity.StaffRole.ADMIN);
                     admin.setPhone("1234567890");
                     admin.setRestaurant(maniZ);
@@ -89,8 +100,8 @@ public class ServesmartBackendApplication {
 
                     com.servesmart.entity.Staff owner = new com.servesmart.entity.Staff();
                     owner.setName("Ajay (Owner)");
-                    owner.setUsername("ajay@servesmart.com");
-                    owner.setPassword(org.springframework.security.crypto.bcrypt.BCrypt.hashpw("password123", org.springframework.security.crypto.bcrypt.BCrypt.gensalt()));
+                    owner.setUsername(ownerUsername);
+                    owner.setPassword(org.springframework.security.crypto.bcrypt.BCrypt.hashpw(ownerPassword, org.springframework.security.crypto.bcrypt.BCrypt.gensalt()));
                     owner.setRole(com.servesmart.entity.StaffRole.OWNER);
                     owner.setPhone("1234567890");
                     owner.setRestaurant(maniZ);
@@ -98,8 +109,8 @@ public class ServesmartBackendApplication {
 
                     com.servesmart.entity.Staff kitchen = new com.servesmart.entity.Staff();
                     kitchen.setName("Kitchen Staff");
-                    kitchen.setUsername("kitchen");
-                    kitchen.setPassword(org.springframework.security.crypto.bcrypt.BCrypt.hashpw("password123", org.springframework.security.crypto.bcrypt.BCrypt.gensalt()));
+                    kitchen.setUsername(kitchenUsername);
+                    kitchen.setPassword(org.springframework.security.crypto.bcrypt.BCrypt.hashpw(kitchenPassword, org.springframework.security.crypto.bcrypt.BCrypt.gensalt()));
                     kitchen.setRole(com.servesmart.entity.StaffRole.KITCHEN);
                     kitchen.setPhone("0987654321");
                     kitchen.setRestaurant(maniZ);

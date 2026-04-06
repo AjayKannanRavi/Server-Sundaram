@@ -2,7 +2,6 @@ package com.servesmart.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -27,6 +26,15 @@ public class DatabaseProvisioner {
     @Value("${spring.datasource.password}")
     private String dbPass;
 
+    @Value("${app.database.host:localhost}")
+    private String dbHost;
+
+    @Value("${app.database.port:3306}")
+    private String dbPort;
+
+    @Value("${app.database.params:useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}")
+    private String dbParams;
+
     public void createTenantDatabase(String tenantId) {
         String dbName = "ss_hotel_" + tenantId;
         try (Connection conn = dataSource.getConnection();
@@ -40,7 +48,7 @@ public class DatabaseProvisioner {
 
             // Initialize the schema
             try (Connection tenantConn = java.sql.DriverManager.getConnection(
-                    "jdbc:mysql://localhost:3306/" + dbName + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&allowMultiQueries=true", 
+                    buildTenantJdbcUrl(dbName, true),
                     dbUser, dbPass)) {
                 
                 String schemaSql = loadSchemaSql();
@@ -72,7 +80,7 @@ public class DatabaseProvisioner {
                 + "tax_percentage = VALUES(tax_percentage), service_charge = VALUES(service_charge)";
 
         try (Connection tenantConn = java.sql.DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/" + dbName + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
+        buildTenantJdbcUrl(dbName, false),
                 dbUser, dbPass);
              PreparedStatement ps = tenantConn.prepareStatement(sql)) {
 
@@ -106,5 +114,13 @@ public class DatabaseProvisioner {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
             return reader.lines().collect(Collectors.joining("\n"));
         }
+    }
+
+    private String buildTenantJdbcUrl(String dbName, boolean allowMultiQueries) {
+        String params = dbParams == null ? "" : dbParams.trim();
+        if (allowMultiQueries && !params.contains("allowMultiQueries=")) {
+            params = params.isEmpty() ? "allowMultiQueries=true" : params + "&allowMultiQueries=true";
+        }
+        return "jdbc:mysql://" + dbHost + ":" + dbPort + "/" + dbName + (params.isEmpty() ? "" : "?" + params);
     }
 }

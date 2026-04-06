@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Building2, Plus, Users, LayoutDashboard, Settings, Power, Star, Calendar, Trash2, Search, CheckCircle, XCircle } from 'lucide-react';
+import { API_BASE_URL } from '../api/api';
 
 const SuperAdminDashboard = () => {
     const [hotels, setHotels] = useState([]);
@@ -24,7 +25,7 @@ const SuperAdminDashboard = () => {
 
     const fetchStats = async () => {
         try {
-            const res = await axios.get('http://localhost:8085/api/saas/stats');
+            const res = await axios.get(`${API_BASE_URL}/saas/stats`);
             setStats(res.data);
         } catch (err) {
             console.error('Error fetching stats', err);
@@ -33,7 +34,7 @@ const SuperAdminDashboard = () => {
 
     const fetchSettings = async () => {
         try {
-            const res = await axios.get('http://localhost:8085/api/saas/settings');
+            const res = await axios.get(`${API_BASE_URL}/saas/settings`);
             setSettings(res.data);
         } catch (err) {
             console.error('Error fetching settings', err);
@@ -42,7 +43,7 @@ const SuperAdminDashboard = () => {
 
     const fetchHotels = async () => {
         try {
-            const res = await axios.get('http://localhost:8085/api/saas/hotels');
+            const res = await axios.get(`${API_BASE_URL}/saas/hotels`);
             setHotels(res.data);
         } catch (err) {
             console.error('Error fetching hotels', err);
@@ -54,7 +55,7 @@ const SuperAdminDashboard = () => {
     const handleCreateHotel = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:8085/api/saas/hotels', newHotel);
+            await axios.post(`${API_BASE_URL}/saas/hotels`, newHotel);
             setShowCreateModal(false);
             fetchHotels();
             setNewHotel({
@@ -75,7 +76,7 @@ const SuperAdminDashboard = () => {
 
     const toggleStatus = async (id) => {
         try {
-            await axios.put(`http://localhost:8085/api/saas/hotels/${id}/toggle-status`);
+            await axios.put(`${API_BASE_URL}/saas/hotels/${id}/toggle-status`);
             fetchHotels();
         } catch (err) {
             console.error('Error toggling status', err);
@@ -84,7 +85,7 @@ const SuperAdminDashboard = () => {
 
     const upgradePlan = async (id, planType, months) => {
         try {
-            await axios.put(`http://localhost:8085/api/saas/hotels/${id}/plan`, { planType, months });
+            await axios.put(`${API_BASE_URL}/saas/hotels/${id}/plan`, { planType, months });
             fetchHotels();
         } catch (err) {
             console.error('Error updating plan', err);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { User, Lock, ChefHat, Loader2, ArrowLeft, AlertCircle, Hotel } from 'lucide-react';
+import { API_BASE_URL } from '../api/api';
 
 const StaffLogin = ({ role }) => {
     const navigate = useNavigate();
@@ -37,7 +38,7 @@ const StaffLogin = ({ role }) => {
         setLoading(true);
         setError('');
         try {
-            const response = await axios.post('http://localhost:8085/api/staff/login', {
+            const response = await axios.post(`${API_BASE_URL}/staff/login`, {
                 username,
                 password,
                 hotelId: hotelId?.toString()

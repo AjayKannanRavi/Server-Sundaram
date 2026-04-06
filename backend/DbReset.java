@@ -1,10 +1,13 @@
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 
 public class DbReset {
     public static void main(String[] args) {
-        String url = "jdbc:mysql://localhost:3306/servesmart_db?allowMultiQueries=true";
-        String user = "root";
-        String pass = "Ajay@111";
+        String baseUrl = System.getenv().getOrDefault("DB_URL", "jdbc:mysql://localhost:3306/servesmart_db");
+        String url = baseUrl.contains("?") ? baseUrl + "&allowMultiQueries=true" : baseUrl + "?allowMultiQueries=true";
+        String user = System.getenv().getOrDefault("DB_USER", "");
+        String pass = System.getenv().getOrDefault("DB_PASSWORD", "");
         
         String[] tables = {
             "order_items", "restaurant_orders", "payments", "reviews", "customers",

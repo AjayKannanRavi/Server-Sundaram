@@ -3,6 +3,7 @@ import { useSearchParams, useParams } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
 import axios from 'axios';
 import { CheckCircle, Clock, Receipt, Star } from 'lucide-react';
+import { API_BASE_URL, WS_BASE_URL } from '../api/api';
 
 const BillPage = () => {
   const { hotelId: urlHotelId } = useParams();
@@ -18,7 +19,7 @@ const BillPage = () => {
   useEffect(() => {
     if (!tableId) return;
 
-    axios.get(`http://localhost:8085/api/orders/session?tableId=${tableId}`, {
+    axios.get(`${API_BASE_URL}/orders/session?tableId=${tableId}`, {
       headers: { 'X-Hotel-Id': hotelId }
     })
       .then(res => {
@@ -29,7 +30,7 @@ const BillPage = () => {
       .finally(() => setLoading(false));
 
     const client = new Client({
-      brokerURL: 'ws://localhost:8085/ws',
+      brokerURL: WS_BASE_URL,
       onConnect: () => {
         client.subscribe(`/topic/customer/${hotelId}/${tableId}`, (message) => {
           const updated = JSON.parse(message.body);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../api/api';
 import { 
   TrendingUp, ShoppingBag, Users, 
   ShieldCheck, Layout, ChevronRight, 
@@ -37,7 +38,7 @@ const OwnerDashboard = () => {
 
     const fetchDashboardData = async () => {
         try {
-            const response = await axios.get(`http://localhost:8085/api/saas/hotel-stats/${hotelId}`, {
+            const response = await axios.get(`${API_BASE_URL}/saas/hotel-stats/${hotelId}`, {
                 headers: { 'X-Hotel-Id': hotelId }
             });
             setStats(response.data);
@@ -74,7 +75,7 @@ const OwnerDashboard = () => {
                 ? { username: newUsername, password: newPassword }
                 : { username: profileEmail, password: profilePass };
 
-            await axios.put(`http://localhost:8085/api/staff/update-by-role/${targetRole}`, payload, {
+            await axios.put(`${API_BASE_URL}/staff/update-by-role/${targetRole}`, payload, {
                 headers: { 'X-Hotel-Id': hotelId }
             });
             await fetchDashboardData();

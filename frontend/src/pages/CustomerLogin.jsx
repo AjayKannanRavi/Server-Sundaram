@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Phone, User, CheckCircle, ChevronRight, ArrowLeft, Loader2, ChefHat } from 'lucide-react';
+import { API_BASE_URL } from '../api/api';
 
 const CustomerLogin = () => {
     const navigate = useNavigate();
@@ -24,7 +25,7 @@ const CustomerLogin = () => {
         // Fetch Restaurant details
         const fetchRestaurant = async () => {
             try {
-                const res = await axios.get('http://localhost:8085/api/restaurant', {
+                const res = await axios.get(`${API_BASE_URL}/restaurant`, {
                     headers: { 'X-Hotel-Id': hotelId }
                 });
                 if (res.data && res.data.name) {
@@ -53,7 +54,7 @@ const CustomerLogin = () => {
         setLoading(true);
         setError('');
         try {
-            await axios.post('http://localhost:8085/api/customers/otp/send', {
+            await axios.post(`${API_BASE_URL}/customers/otp/send`, {
                 name,
                 mobileNumber: mobile
             }, {
@@ -78,7 +79,7 @@ const CustomerLogin = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await axios.post('http://localhost:8085/api/customers/otp/verify', {
+            const response = await axios.post(`${API_BASE_URL}/customers/otp/verify`, {
                 mobileNumber: mobile,
                 otp,
                 tableId

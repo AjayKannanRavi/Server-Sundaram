@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Building2, User, Mail, Lock, Phone, MapPin, CheckCircle, ArrowRight, Share2, ExternalLink, Zap, Star, ShieldCheck } from 'lucide-react';
+import { API_BASE_URL } from '../api/api';
 
 const HotelRegistration = () => {
     const location = useLocation();
@@ -56,7 +57,7 @@ const HotelRegistration = () => {
                 kitchenUsername: formData.kitchenUsername,
                 kitchenPassword: formData.kitchenPassword
             };
-            const response = await axios.post('http://localhost:8085/api/saas/hotels', payload);
+            const response = await axios.post(`${API_BASE_URL}/saas/hotels`, payload);
             setRegHotelId(response.data.hotelId);
             setStep(4); // Success step
         } catch (err) {

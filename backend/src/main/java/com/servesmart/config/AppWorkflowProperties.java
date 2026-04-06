@@ -55,6 +55,12 @@ public class AppWorkflowProperties {
     public static class Seed {
         private boolean enabled = true;
         private String defaultTenantId = "1";
+        private String adminUsername = "admin";
+        private String adminPassword = "";
+        private String ownerUsername = "owner@servesmart.local";
+        private String ownerPassword = "";
+        private String kitchenUsername = "kitchen";
+        private String kitchenPassword = "";
 
         public boolean isEnabled() {
             return enabled;
@@ -70,6 +76,54 @@ public class AppWorkflowProperties {
 
         public void setDefaultTenantId(String defaultTenantId) {
             this.defaultTenantId = defaultTenantId;
+        }
+
+        public String getAdminUsername() {
+            return adminUsername;
+        }
+
+        public void setAdminUsername(String adminUsername) {
+            this.adminUsername = adminUsername;
+        }
+
+        public String getAdminPassword() {
+            return adminPassword;
+        }
+
+        public void setAdminPassword(String adminPassword) {
+            this.adminPassword = adminPassword;
+        }
+
+        public String getOwnerUsername() {
+            return ownerUsername;
+        }
+
+        public void setOwnerUsername(String ownerUsername) {
+            this.ownerUsername = ownerUsername;
+        }
+
+        public String getOwnerPassword() {
+            return ownerPassword;
+        }
+
+        public void setOwnerPassword(String ownerPassword) {
+            this.ownerPassword = ownerPassword;
+        }
+
+        public String getKitchenUsername() {
+            return kitchenUsername;
+        }
+
+        public void setKitchenUsername(String kitchenUsername) {
+            this.kitchenUsername = kitchenUsername;
+        }
+
+        public String getKitchenPassword() {
+            return kitchenPassword;
+        }
+
+        public void setKitchenPassword(String kitchenPassword) {
+            this.kitchenPassword = kitchenPassword;
         }
     }
 

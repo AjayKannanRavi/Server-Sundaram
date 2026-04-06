@@ -2,10 +2,12 @@ server:
   port: ${SERVER_PORT:8085}
 
 spring:
+  config:
+    import: optional:file:.env[.properties],optional:file:../.env[.properties]
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/servesmart_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${DB_USER:root}
-    password: ${DB_PASSWORD:Ajay@111}
+    username: ${DB_USER:}
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -26,9 +28,19 @@ app:
   seed:
     enabled: ${APP_SEED_ENABLED:true}
     default-tenant-id: ${APP_SEED_TENANT_ID:1}
+    admin-username: ${APP_SEED_ADMIN_USERNAME:admin}
+    admin-password: ${APP_SEED_ADMIN_PASSWORD:}
+    owner-username: ${APP_SEED_OWNER_USERNAME:owner@servesmart.local}
+    owner-password: ${APP_SEED_OWNER_PASSWORD:}
+    kitchen-username: ${APP_SEED_KITCHEN_USERNAME:kitchen}
+    kitchen-password: ${APP_SEED_KITCHEN_PASSWORD:}
   url:
     backend-base: ${APP_BACKEND_BASE_URL:http://localhost:8085}
   auth:
     mock-otp: ${APP_MOCK_OTP:123456}
+  database:
+    host: ${DB_HOST:localhost}
+    port: ${DB_PORT:3306}
+    params: ${DB_PARAMS:useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
 
 

@@ -10,8 +10,9 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import HotelSaaSDashboard from './HotelSaaSDashboard';
+import { API_BASE_URL, WS_BASE_URL } from '../api/api';
 
-const API = 'http://localhost:8085/api';
+const API = API_BASE_URL;
 
 const AdminMenuManager = () => {
   const { hotelId: urlHotelId } = useParams();
@@ -106,7 +107,7 @@ const AdminMenuManager = () => {
     if (!urlHotelId) return;
 
     const client = new Client({
-      brokerURL: 'ws://localhost:8085/ws',
+      brokerURL: WS_BASE_URL,
       onConnect: () => {
         // Subscribe to tenant-specific admin topic
         client.subscribe(`/topic/${urlHotelId}/admin`, (message) => {

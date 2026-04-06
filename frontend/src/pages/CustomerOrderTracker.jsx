@@ -3,6 +3,7 @@ import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
 import axios from 'axios';
 import { Clock, ChefHat, CheckCircle, Coffee, Plus, X, ShoppingBag, Receipt } from 'lucide-react';
+import { API_BASE_URL, WS_BASE_URL } from '../api/api';
 
 // ─────────────────────────────────────────────────
 // StatusBadge helper
@@ -128,7 +129,7 @@ const CustomerOrderTracker = () => {
   // Fetch session orders on mount
   useEffect(() => {
     if (!tableId) return;
-    axios.get(`http://localhost:8085/api/orders/session?tableId=${tableId}`, {
+    axios.get(`${API_BASE_URL}/orders/session?tableId=${tableId}`, {
       headers: { 'X-Hotel-Id': hotelId }
     })
       .then(res => setSessionOrders(res.data))
@@ -140,7 +141,7 @@ const CustomerOrderTracker = () => {
   useEffect(() => {
     if (!tableId) return;
     const client = new Client({
-      brokerURL: 'ws://localhost:8085/ws',
+      brokerURL: WS_BASE_URL,
       onConnect: () => {
         client.subscribe(`/topic/customer/${hotelId}/${tableId}`, (message) => {
           const updated = JSON.parse(message.body);
@@ -192,7 +193,7 @@ const CustomerOrderTracker = () => {
       await Promise.all(
         sessionOrders
           .filter(o => o.status === 'SERVED')
-          .map(o => axios.put(`http://localhost:8085/api/orders/${o.id}/status?status=COMPLETED`, {}, {
+          .map(o => axios.put(`${API_BASE_URL}/orders/${o.id}/status?status=COMPLETED`, {}, {
             headers: { 'X-Hotel-Id': hotelId }
           }))
       );

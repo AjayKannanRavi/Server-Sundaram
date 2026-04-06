@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../api/api';
 import {
   ShoppingCart, Search, X, Plus, Minus, Star, ChefHat,
   Leaf, Flame, Clock, ChevronDown, CheckCircle, SlidersHorizontal,
@@ -279,9 +280,9 @@ const CustomerMenu = () => {
     try {
       const headers = { 'X-Hotel-Id': hotelId || customer?.hotelId };
       const [catRes, itemRes, restRes] = await Promise.all([
-        axios.get('http://localhost:8085/api/menu/categories', { headers }),
-        axios.get('http://localhost:8085/api/menu', { headers }),
-        axios.get('http://localhost:8085/api/restaurant', { headers }).catch(() => ({ data: { name: "ServeSmart Restaurant" } }))
+        axios.get(`${API_BASE_URL}/menu/categories`, { headers }),
+        axios.get(`${API_BASE_URL}/menu`, { headers }),
+        axios.get(`${API_BASE_URL}/restaurant`, { headers }).catch(() => ({ data: { name: "ServeSmart Restaurant" } }))
       ]);
       setCategories(catRes.data);
       setMenuItems(itemRes.data.filter(i => i.available));
@@ -318,7 +319,7 @@ const CustomerMenu = () => {
     if (cart.length === 0 || placing) return;
     setPlacing(true);
     try {
-      const res = await axios.post('http://localhost:8085/api/orders', {
+      const res = await axios.post(`${API_BASE_URL}/orders`, {
         tableId: parseInt(tableId),
         customerName: customer?.name,
         customerPhone: customer?.mobileNumber,

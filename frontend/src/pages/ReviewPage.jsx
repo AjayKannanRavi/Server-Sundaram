@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Star, Send, CheckCircle } from 'lucide-react';
+import { API_BASE_URL } from '../api/api';
 
 const StarRating = ({ value, onChange, size = 32 }) => (
   <div className="flex gap-1">
@@ -40,7 +41,7 @@ const ReviewPage = () => {
     setLoading(true);
     setError('');
     try {
-      await axios.post('http://localhost:8085/api/reviews', {
+      await axios.post(`${API_BASE_URL}/reviews`, {
         sessionId,
         tableId: parseInt(tableId),
         overallRating,

@@ -3,6 +3,7 @@ package com.servesmart.config;
 import org.hibernate.engine.jdbc.connections.spi.AbstractMultiTenantConnectionProvider;
 import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -17,6 +18,21 @@ public class MultiTenantConnectionProviderImpl extends AbstractMultiTenantConnec
 
     private final DataSource masterDataSource;
     private final Map<String, ConnectionProvider> tenantConnectionProviders = new HashMap<>();
+
+    @Value("${spring.datasource.username}")
+    private String dbUser;
+
+    @Value("${spring.datasource.password}")
+    private String dbPass;
+
+    @Value("${app.database.host:localhost}")
+    private String dbHost;
+
+    @Value("${app.database.port:3306}")
+    private String dbPort;
+
+    @Value("${app.database.params:useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}")
+    private String dbParams;
 
     @Autowired
     public MultiTenantConnectionProviderImpl(DataSource masterDataSource) {
@@ -39,12 +55,12 @@ public class MultiTenantConnectionProviderImpl extends AbstractMultiTenantConnec
         }
 
         return tenantConnectionProviders.computeIfAbsent(tenantId, id -> {
-            String tenantDbUrl = "jdbc:mysql://localhost:3306/ss_hotel_" + id + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+            String tenantDbUrl = "jdbc:mysql://" + dbHost + ":" + dbPort + "/ss_hotel_" + id + "?" + dbParams;
             HikariDataSource tenantDataSource = new HikariDataSource();
             tenantDataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
             tenantDataSource.setJdbcUrl(tenantDbUrl);
-            tenantDataSource.setUsername("root");
-            tenantDataSource.setPassword("Ajay@111");
+            tenantDataSource.setUsername(dbUser);
+            tenantDataSource.setPassword(dbPass);
             tenantDataSource.setPoolName("tenant-" + id + "-pool");
             tenantDataSource.setMaximumPoolSize(2);
             tenantDataSource.setMinimumIdle(0);

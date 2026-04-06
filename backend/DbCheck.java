@@ -1,10 +1,14 @@
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
 
 public class DbCheck {
     public static void main(String[] args) {
-        String url = "jdbc:mysql://localhost:3306/servesmart_db";
-        String user = "root";
-        String pass = "Ajay@111";
+        String url = System.getenv().getOrDefault("DB_URL", "jdbc:mysql://localhost:3306/servesmart_db");
+        String user = System.getenv().getOrDefault("DB_USER", "");
+        String pass = System.getenv().getOrDefault("DB_PASSWORD", "");
         try (Connection conn = DriverManager.getConnection(url, user, pass)) {
             System.out.println("Tables in restaurant_tables:");
             try (Statement stmt = conn.createStatement();

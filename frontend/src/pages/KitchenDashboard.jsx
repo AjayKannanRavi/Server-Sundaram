@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
 import axios from 'axios';
 import { ChefHat, Check, Coffee, X, LogOut } from 'lucide-react';
+import { API_BASE_URL, WS_BASE_URL } from '../api/api';
 
 const KitchenDashboard = () => {
   const { hotelId } = useParams();
@@ -18,7 +19,7 @@ const KitchenDashboard = () => {
     }
 
     const fetchOrders = () => {
-      axios.get('http://localhost:8085/api/orders')
+      axios.get(`${API_BASE_URL}/orders`)
         .then(res => setOrders(res.data))
         .catch(err => console.error(err));
     };
@@ -26,7 +27,7 @@ const KitchenDashboard = () => {
     fetchOrders();
 
     const client = new Client({
-      brokerURL: 'ws://localhost:8085/ws',
+      brokerURL: WS_BASE_URL,
       onConnect: () => {
         // Subscribe to tenant-specific kitchen topic
         client.subscribe(`/topic/${hotelId}/kitchen`, (message) => {
@@ -49,7 +50,7 @@ const KitchenDashboard = () => {
   const updateStatus = async (orderId, status) => {
     console.log(`ATTEMPT: Updating Order #${orderId} to ${status}`);
     try {
-      const res = await axios.put(`http://localhost:8085/api/orders/${orderId}/status?status=${status}`);
+      const res = await axios.put(`${API_BASE_URL}/orders/${orderId}/status?status=${status}`);
       console.log(`SUCCESS: Order #${orderId} updated to ${status}`, res.data);
     } catch (err) {
       console.error(`FAILURE: Failed to update Order #${orderId} to ${status}`, err.response?.data || err.message);
@@ -62,7 +63,7 @@ const KitchenDashboard = () => {
     if (!rejectReason.trim()) return;
     console.log(`ATTEMPT: Rejecting Order #${rejectId} with reason: ${rejectReason}`);
     try {
-      const res = await axios.put(`http://localhost:8085/api/orders/${rejectId}/status/reject`, { reason: rejectReason });
+      const res = await axios.put(`${API_BASE_URL}/orders/${rejectId}/status/reject`, { reason: rejectReason });
       console.log(`SUCCESS: Order #${rejectId} rejected`, res.data);
       setRejectId(null);
       setRejectReason('');
@@ -89,7 +90,7 @@ const KitchenDashboard = () => {
           <div className="flex items-center gap-2 ml-auto md:ml-4">
             <button 
               onClick={() => {
-                axios.get('http://localhost:8085/api/orders')
+                axios.get(`${API_BASE_URL}/orders`)
                   .then(res => setOrders(res.data))
                   .catch(err => console.error(err));
               }}

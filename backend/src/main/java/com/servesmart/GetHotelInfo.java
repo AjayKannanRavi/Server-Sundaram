@@ -3,9 +3,9 @@ import java.sql.*;
 
 public class GetHotelInfo {
     public static void main(String[] args) {
-        String url = "jdbc:mysql://localhost:3306/servesmart_db";
-        String user = "root";
-        String pass = "Ajay@111"; 
+        String url = System.getenv().getOrDefault("DB_URL", "jdbc:mysql://localhost:3306/servesmart_db");
+        String user = System.getenv().getOrDefault("DB_USER", "");
+        String pass = System.getenv().getOrDefault("DB_PASSWORD", "");
         try (Connection conn = DriverManager.getConnection(url, user, pass)) {
              try (Statement stmt = conn.createStatement()) {
                 ResultSet rs = stmt.executeQuery("SELECT s.username, s.password, s.role FROM staff s WHERE s.restaurant_id = 54");
