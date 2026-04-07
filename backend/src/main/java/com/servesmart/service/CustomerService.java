@@ -26,16 +26,12 @@ public class CustomerService {
     private RestaurantRepository restaurantRepository;
 
     @Autowired
-    private AppWorkflowProperties appWorkflowProperties;
-
-    @Autowired
     private SmsService smsService;
 
     public void sendOtp(String mobileNumber, String name) {
         try {
             Long restaurantId = TenantContext.requireCurrentTenantAsLong();
             Restaurant restaurant = ensureTenantRestaurant(restaurantId);
-            String otp = appWorkflowProperties.getAuth().getMockOtp();
 
             Customer customer = customerRepository.findByMobileNumberAndRestaurantId(mobileNumber, restaurantId)
                     .orElse(new Customer());
@@ -48,17 +44,19 @@ public class CustomerService {
             if (name != null) {
                 customer.setName(name);
             }
-            customer.setCurrentOtp(otp);
+            // For Twilio Verify, we don't store the OTP code, just the timestamp
             customer.setOtpGeneratedAt(LocalDateTime.now());
 
             customerRepository.save(customer);
             
-            // Standardized SMS/OTP Sending
-            smsService.sendOtp(mobileNumber, otp);
+            // Standardized Twilio Verify Sending
+            boolean sent = smsService.sendOtp(mobileNumber, null);
+            if (!sent) {
+                throw new RuntimeException("Twilio failed to initiate verification");
+            }
             
         } catch (Exception e) {
             System.err.println("Error sending OTP: " + e.getMessage());
-            e.printStackTrace();
             throw new RuntimeException("Failed to send OTP: " + e.getMessage(), e);
         }
     }
@@ -70,7 +68,8 @@ public class CustomerService {
         Customer customer = customerRepository.findByMobileNumberAndRestaurantId(mobileNumber, restaurantId)
                 .orElseThrow(() -> new RuntimeException("Customer not found for mobile: " + mobileNumber));
 
-        if (customer.getCurrentOtp() != null && customer.getCurrentOtp().equals(otp)) {
+        // Use Twilio Verify service to check the code
+        if (smsService.verifyOtp(mobileNumber, otp)) {
             customer.setVisitCount(customer.getVisitCount() + 1);
             customer.setLastVisitedDate(LocalDateTime.now());
             customer.setLastTableUsed(tableId);

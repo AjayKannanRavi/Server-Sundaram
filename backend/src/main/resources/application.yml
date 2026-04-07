@@ -42,5 +42,9 @@ app:
     host: ${DB_HOST:localhost}
     port: ${DB_PORT:3306}
     params: ${DB_PARAMS:useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+  twilio:
+    account-sid: ${TWILIO_ACCOUNT_SID:}
+    auth-token: ${TWILIO_AUTH_TOKEN:}
+    verify-service-sid: ${TWILIO_VERIFY_SERVICE_SID:}
 
 

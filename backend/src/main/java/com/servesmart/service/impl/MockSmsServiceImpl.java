@@ -22,4 +22,10 @@ public class MockSmsServiceImpl implements SmsService {
         
         return true;
     }
+
+    @Override
+    public boolean verifyOtp(String mobileNumber, String code) {
+        log.info("MOCK SMS SERVICE - VERIFYING OTP FOR: {} WITH CODE: {}", mobileNumber, code);
+        return true;
+    }
 }

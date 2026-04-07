@@ -14,6 +14,7 @@ public class AppWorkflowProperties {
     private final Seed seed = new Seed();
     private final Url url = new Url();
     private final Auth auth = new Auth();
+    private final Twilio twilio = new Twilio();
 
     public Tenant getTenant() {
         return tenant;
@@ -29,6 +30,10 @@ public class AppWorkflowProperties {
 
     public Auth getAuth() {
         return auth;
+    }
+
+    public Twilio getTwilio() {
+        return twilio;
     }
 
     public static class Tenant {
@@ -148,6 +153,36 @@ public class AppWorkflowProperties {
 
         public void setMockOtp(String mockOtp) {
             this.mockOtp = mockOtp;
+        }
+    }
+
+    public static class Twilio {
+        private String accountSid;
+        private String authToken;
+        private String verifyServiceSid;
+
+        public String getAccountSid() {
+            return accountSid;
+        }
+
+        public void setAccountSid(String accountSid) {
+            this.accountSid = accountSid;
+        }
+
+        public String getAuthToken() {
+            return authToken;
+        }
+
+        public void setAuthToken(String authToken) {
+            this.authToken = authToken;
+        }
+
+        public String getVerifyServiceSid() {
+            return verifyServiceSid;
+        }
+
+        public void setVerifyServiceSid(String verifyServiceSid) {
+            this.verifyServiceSid = verifyServiceSid;
         }
     }
 }
