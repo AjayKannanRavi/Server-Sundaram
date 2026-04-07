@@ -13,4 +13,6 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
 
     @Query("SELECT s FROM Staff s WHERE s.username = :username AND ((:restaurantId IS NULL AND s.restaurant IS NULL) OR (s.restaurant.id = :restaurantId))")
     Optional<Staff> findByUsernameAndRestaurantId(String username, Long restaurantId);
+
+    void deleteAllByRestaurantId(Long restaurantId);
 }

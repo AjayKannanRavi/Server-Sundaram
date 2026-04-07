@@ -10,6 +10,20 @@ const SuperAdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('tenants');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newHotel, setNewHotel] = useState({
+        name: '',
+        ownerName: '',
+        ownerEmail: '',
+        ownerPassword: '',
+        contactNumber: '',
+        address: '',
+        gstNumber: '',
+        adminUsername: '',
+        adminPassword: '',
+        kitchenUsername: '',
+        kitchenPassword: '',
+        planType: 'STARTER'
+    });
     
     useEffect(() => {
         fetchInitialData();
@@ -83,6 +97,30 @@ const SuperAdminDashboard = () => {
         }
     };
 
+    const deleteHotel = async (id) => {
+        if (window.confirm('ARE YOU ABSOLUTELY SURE? This will permanently delete the tenant and their ENTIRE database!')) {
+            try {
+                await axios.delete(`${API_BASE_URL}/saas/hotels/${id}`);
+                fetchHotels();
+                fetchStats(); // Update platform stats
+            } catch (err) {
+                console.error('Error deleting hotel', err);
+                alert('Deletion failed');
+            }
+        }
+    };
+
+    const saveSettings = async () => {
+        try {
+            await axios.put(`${API_BASE_URL}/saas/settings`, settings);
+            alert('System Settings Updated Successfully');
+            fetchSettings();
+        } catch (err) {
+            console.error('Error saving settings', err);
+            alert('Failed to save settings');
+        }
+    };
+
     const upgradePlan = async (id, planType, months) => {
         try {
             await axios.put(`${API_BASE_URL}/saas/hotels/${id}/plan`, { planType, months });
@@ -102,7 +140,7 @@ const SuperAdminDashboard = () => {
                     <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
                         <LayoutDashboard size={20} />
                     </div>
-                    <h1 className="text-xl font-black tracking-tighter">VITTENO <span className="text-indigo-400">TECH</span></h1>
+                    <h1 className="text-xl font-black tracking-tighter">SERVE<span className="text-indigo-400">SMART</span></h1>
                 </div>
 
                 <nav className="flex-1 space-y-2">
@@ -138,7 +176,7 @@ const SuperAdminDashboard = () => {
                 {/* Header */}
                 <div className="flex justify-between items-center mb-10">
                     <div>
-                        <h2 className="text-4xl font-black text-gray-900 tracking-tight">Vitteno Control Panel</h2>
+                        <h2 className="text-4xl font-black text-gray-900 tracking-tight">ServeSmart Control Panel</h2>
                         <p className="text-gray-500 font-bold mt-1 uppercase text-xs tracking-widest">{hotels.length} Active Platform Tenants</p>
                     </div>
                     <button 
@@ -238,8 +276,11 @@ const SuperAdminDashboard = () => {
                                                 <option value="CLASSIC">Classic Plan</option>
                                                 <option value="PREMIUM">Premium Plan</option>
                                             </select>
-                                            <button className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-black p-2 rounded-xl transition cursor-pointer">
-                                                <Calendar size={16} />
+                                            <button 
+                                                onClick={() => deleteHotel(hotel.id)}
+                                                className="bg-red-50 hover:bg-red-100 text-red-600 font-black p-2 rounded-xl transition cursor-pointer"
+                                            >
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </td>
@@ -297,6 +338,7 @@ const SuperAdminDashboard = () => {
                                     <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 block">Branding Name</label>
                                     <input 
                                         value={settings.platformName}
+                                        onChange={e => setSettings({...settings, platformName: e.target.value})}
                                         className="w-full bg-gray-50 border-2 border-transparent rounded-2xl py-4 px-6 font-bold text-gray-900 outline-none focus:bg-white focus:border-indigo-600 transition-all"
                                     />
                                 </div>
@@ -305,18 +347,30 @@ const SuperAdminDashboard = () => {
                                     <input 
                                         type="number"
                                         value={settings.premiumMonthlyPrice}
+                                        onChange={e => setSettings({...settings, premiumMonthlyPrice: parseFloat(e.target.value)})}
                                         className="w-full bg-gray-50 border-2 border-transparent rounded-2xl py-4 px-6 font-bold text-gray-900 outline-none focus:bg-white focus:border-indigo-600 transition-all"
                                     />
                                 </div>
-                                <div className="flex items-center justify-between p-6 bg-red-50 rounded-3xl border border-red-100">
+                                <div 
+                                    onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})}
+                                    className="flex items-center justify-between p-6 bg-red-50 rounded-3xl border border-red-100 cursor-pointer group"
+                                >
                                     <div>
                                         <p className="font-black text-red-700">Maintenance Mode</p>
                                         <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1">Disables all tenant terminals</p>
                                     </div>
-                                    <div className={`w-14 h-8 rounded-full p-1 transition-all flex cursor-pointer ${settings.maintenanceMode ? 'bg-red-600 items-end' : 'bg-gray-200 items-start'}`}>
+                                    <div className={`w-14 h-8 rounded-full p-1 transition-all flex ${settings.maintenanceMode ? 'bg-red-600 justify-end' : 'bg-gray-200 justify-start'}`}>
                                         <div className="w-6 h-6 bg-white rounded-full shadow-sm" />
                                     </div>
                                 </div>
+                            </div>
+                            <div className="mt-8 pt-8 border-t border-gray-100 flex justify-end">
+                                <button 
+                                    onClick={saveSettings}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-10 py-4 rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-95"
+                                >
+                                    Save Platform Changes
+                                </button>
                             </div>
                         </div>
                         
@@ -343,7 +397,7 @@ const SuperAdminDashboard = () => {
             {/* Create Hotel Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-[40px] p-10 w-full max-w-2xl shadow-2xl">
+                    <div className="bg-white rounded-[40px] p-10 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-8">
                             <h3 className="text-3xl font-black text-gray-900">Onboard Hotel</h3>
                             <button onClick={() => setShowCreateModal(false)} className="bg-gray-100 p-3 rounded-2xl text-gray-400 hover:text-gray-900 transition cursor-pointer">
@@ -393,13 +447,43 @@ const SuperAdminDashboard = () => {
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Login Password</label>
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Admin Login Username</label>
                                 <input 
-                                    required type="password"
-                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold focus:border-blue-500 outline-none transition"
+                                    required 
+                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold focus:border-indigo-600 outline-none transition"
+                                    placeholder="admin_username"
+                                    value={newHotel.adminUsername}
+                                    onChange={e => setNewHotel({...newHotel, adminUsername: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Admin Login Password</label>
+                                <input 
+                                    required type="text"
+                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold focus:border-indigo-600 outline-none transition"
                                     placeholder="••••••••"
-                                    value={newHotel.ownerPassword}
-                                    onChange={e => setNewHotel({...newHotel, ownerPassword: e.target.value})}
+                                    value={newHotel.adminPassword}
+                                    onChange={e => setNewHotel({...newHotel, adminPassword: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Kitchen Login Username</label>
+                                <input 
+                                    required 
+                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold focus:border-indigo-600 outline-none transition"
+                                    placeholder="kitchen_username"
+                                    value={newHotel.kitchenUsername}
+                                    onChange={e => setNewHotel({...newHotel, kitchenUsername: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Kitchen Login Password</label>
+                                <input 
+                                    required type="text"
+                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold focus:border-indigo-600 outline-none transition"
+                                    placeholder="••••••••"
+                                    value={newHotel.kitchenPassword}
+                                    onChange={e => setNewHotel({...newHotel, kitchenPassword: e.target.value})}
                                 />
                             </div>
                             <div className="col-span-2">

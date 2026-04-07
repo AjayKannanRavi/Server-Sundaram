@@ -91,7 +91,7 @@ const StaffLogin = ({ role }) => {
 
             {/* Login Card */}
             <div className="w-full max-w-md bg-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
-                <form onSubmit={handleLogin} className="space-y-8">
+                <form onSubmit={handleLogin} className="space-y-8" autoComplete="off">
                     <div className="space-y-2">
                         <h2 className="text-3xl font-black text-gray-900 mb-1">{role} Login</h2>
                         <p className="text-gray-500 font-medium">Access your restaurant dashboard.</p>
@@ -115,6 +115,8 @@ const StaffLogin = ({ role }) => {
                                     value={hotelId}
                                     onChange={(e) => setHotelId(e.target.value)}
                                     readOnly={!!urlHotelId}
+                                    autoComplete="off"
+                                    name="hotelId"
                                     required
                                 />
                             </div>
@@ -132,6 +134,8 @@ const StaffLogin = ({ role }) => {
                                     className="w-full bg-gray-50 border-2 border-transparent rounded-2xl py-4 pl-12 pr-4 text-gray-900 placeholder:text-gray-300 focus:bg-white focus:border-amber-500 outline-none transition-all font-bold shadow-sm"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
+                                    autoComplete="off"
+                                    name="username"
                                     required
                                 />
                             </div>
@@ -147,6 +151,8 @@ const StaffLogin = ({ role }) => {
                                     className="w-full bg-gray-50 border-2 border-transparent rounded-2xl py-4 pl-12 pr-4 text-gray-900 placeholder:text-gray-300 focus:bg-white focus:border-amber-500 outline-none transition-all font-bold shadow-sm"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
+                                    autoComplete="new-password"
+                                    name="password"
                                     required
                                 />
                             </div>

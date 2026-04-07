@@ -16,7 +16,7 @@ public class RestaurantTable {
     @Column(name = "table_number", nullable = false)
     private Integer tableNumber;
 
-    @Column(name = "qr_code_url", nullable = false)
+    @Column(name = "qr_code_url")
     private String qrCodeUrl;
 
     @Column(name = "current_session_id")

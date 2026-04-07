@@ -43,36 +43,68 @@ const getFoodImage = (item) => {
 };
 
 // ─── Cart Item Row ────────────────────────────────────────────────────────────
-const CartItem = ({ item, onIncrease, onDecrease, onRemove }) => (
-  <div className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
-    <img src={getFoodImage(item)} alt={item.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" onError={e => { e.target.src = '/food_placeholder.png'; }} />
+const CartItem = ({ item, onIncrease, onDecrease, onRemove, darkMode }) => (
+  <div className={`flex items-start gap-4 py-4 border-b ${darkMode ? 'border-white/5' : 'border-gray-50'} last:border-0`}>
+    <div className="relative">
+      <img src={getFoodImage(item)} alt={item.name} className="w-16 h-16 rounded-2xl object-cover shadow-lg" onError={e => { e.target.src = '/food_placeholder.png'; }} />
+      {item.quantity > 1 && (
+        <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-900">
+          {item.quantity}
+        </div>
+      )}
+    </div>
     <div className="flex-1 min-w-0">
-      <p className="font-bold text-gray-900 text-sm truncate">{item.name}</p>
-      <p className="text-xs text-gray-400 font-medium">₹{item.price.toLocaleString('en-IN')} each</p>
-    </div>
-    <div className="flex items-center gap-2">
-      <button onClick={() => onDecrease(item.id)} className="w-7 h-7 rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition cursor-pointer">
-        <Minus size={12} />
-      </button>
-      <span className="w-6 text-center font-black text-gray-900 text-sm">{item.quantity}</span>
-      <button onClick={() => onIncrease(item.id)} className="w-7 h-7 rounded-full bg-amber-100 hover:bg-amber-500 hover:text-white flex items-center justify-center transition cursor-pointer">
-        <Plus size={12} />
-      </button>
-    </div>
-    <div className="w-14 text-right">
-      <p className="font-black text-gray-900 text-sm">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
-      <button onClick={() => onRemove(item.id)} className="text-[10px] text-red-400 hover:text-red-600 font-bold cursor-pointer transition">Remove</button>
+      <div className="flex justify-between items-start mb-0.5">
+        <p className={`font-black text-sm leading-snug ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+          {item.name}
+        </p>
+        <p className={`font-black text-sm ml-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+          ₹{(item.price * item.quantity).toLocaleString('en-IN')}
+        </p>
+      </div>
+      <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-gray-500' : 'text-gray-400'} mb-3`}>
+        ₹{item.price.toLocaleString('en-IN')} / ea
+      </p>
+      
+      <div className="flex items-center justify-between">
+        <div className={`flex items-center gap-1.5 p-1 rounded-xl border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-100'}`}>
+          <button 
+            onClick={() => onDecrease(item.id)} 
+            className={`w-7 h-7 rounded-lg flex items-center justify-center transition cursor-pointer ${darkMode ? 'text-gray-400 hover:bg-red-500/20 hover:text-red-500' : 'text-gray-500 hover:bg-red-50 hover:text-red-600'}`}
+          >
+            <Minus size={12} strokeWidth={3} />
+          </button>
+          <span className={`w-5 text-center font-black text-xs ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            {item.quantity}
+          </span>
+          <button 
+            onClick={() => onIncrease(item.id)} 
+            className={`w-7 h-7 rounded-lg flex items-center justify-center transition cursor-pointer ${darkMode ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600' : 'bg-amber-500 text-white hover:bg-amber-600'}`}
+          >
+            <Plus size={12} strokeWidth={3} />
+          </button>
+        </div>
+        <button 
+          onClick={() => onRemove(item.id)} 
+          className="text-[9px] font-black uppercase tracking-widest text-red-500/70 hover:text-red-500 transition cursor-pointer"
+        >
+          Remove Item
+        </button>
+      </div>
     </div>
   </div>
 );
 
 // ─── Menu Item Card ───────────────────────────────────────────────────────────
-const MenuCard = ({ item, cartQty, onAdd, onIncrease, onDecrease }) => {
+const MenuCard = ({ item, cartQty, onAdd, onIncrease, onDecrease, onShowDetails }) => {
   const [imgLoaded, setImgLoaded] = useState(false);
   const isBestSeller = item.price > 300 || item.name.toLowerCase().includes('special'); 
 
   return (
-    <div className="group relative rounded-[2rem] overflow-hidden shadow-2xl transition-all duration-500 hover:scale-[1.03] active:scale-95 h-[220px] sm:h-[260px] bg-[#0D0D0D] border border-white/5">
+    <div 
+      onClick={() => onShowDetails(item)}
+      className="group relative rounded-[2.5rem] overflow-hidden shadow-2xl transition-all duration-500 hover:scale-[1.03] active:scale-95 h-[230px] sm:h-[280px] bg-[#0D0D0D] border border-white/5 cursor-pointer"
+    >
       {/* Background Image */}
       {!imgLoaded && (
         <div className="absolute inset-0 bg-gray-900 animate-pulse z-0" />
@@ -87,25 +119,34 @@ const MenuCard = ({ item, cartQty, onAdd, onIncrease, onDecrease }) => {
       />
       
       {/* Immersive Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-95 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-95 group-hover:opacity-100 transition-opacity duration-500" />
 
       {/* "Best Seller" Badge */}
       {isBestSeller && (
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-amber-400 text-gray-900 font-black text-[8px] uppercase tracking-widest px-3 py-1.5 rounded-full shadow-xl transform -rotate-2">
-          <Star size={10} fill="currentColor" /> Best Seller
+        <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-amber-400 text-gray-900 font-black text-[9px] uppercase tracking-widest px-3.5 py-1.5 rounded-full shadow-xl transform -rotate-2">
+          <Star size={11} fill="currentColor" /> Best Seller
         </div>
       )}
 
       {/* Content Area */}
-      <div className="absolute inset-0 p-4 sm:p-6 flex flex-col justify-end z-10">
+      <div className="absolute inset-0 p-5 sm:p-7 flex flex-col justify-end z-10">
         <div className="transform transition-all duration-500 group-hover:-translate-y-2">
-          <h3 className="text-white font-serif italic text-base sm:text-xl leading-tight mb-1">
+          <h3 className="text-white font-serif italic text-lg sm:text-2xl leading-tight mb-1">
             {item.name}
           </h3>
-          <div className="flex items-center gap-2 mb-4">
-             <span className="text-amber-400 font-black text-xs sm:text-sm">₹{item.price.toLocaleString('en-IN')}</span>
-             <span className="w-1 h-1 bg-white/30 rounded-full" />
-             <span className="text-white/40 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest italic">Premium Dish</span>
+          <p className="text-white/60 text-[10px] sm:text-[11px] font-medium italic line-clamp-1 mb-3">
+            {item.description || "Freshly prepared with premium ingredients."}
+          </p>
+          <div className="flex items-center justify-between gap-2.5 mb-4">
+             <div className="flex items-center gap-2">
+                <span className="text-amber-400 font-black text-sm sm:text-base">₹{item.price.toLocaleString('en-IN')}</span>
+                <span className="w-1 h-1 bg-white/30 rounded-full" />
+                <div className="flex items-center gap-1 text-amber-400">
+                   <Star size={10} fill="currentColor" />
+                   <span className="text-white/70 font-black text-[10px] uppercase tracking-tighter">4.8</span>
+                </div>
+             </div>
+             <span className="text-white/50 font-bold text-[10px] sm:text-[11px] uppercase tracking-widest italic">Gourmet</span>
           </div>
         </div>
 
@@ -114,24 +155,24 @@ const MenuCard = ({ item, cartQty, onAdd, onIncrease, onDecrease }) => {
           {cartQty === 0 ? (
             <button
               onClick={(e) => { e.stopPropagation(); onAdd(item); }}
-              className="w-full bg-white hover:bg-amber-400 text-gray-900 font-black text-[10px] sm:text-xs py-3 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 shadow-2xl active:scale-95"
+              className="w-full bg-white hover:bg-amber-400 active:bg-amber-500 text-gray-900 font-black text-[10px] sm:text-xs py-3.5 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 shadow-2xl active:scale-95 cursor-pointer"
             >
-              <Plus size={14} strokeWidth={3} /> Add to Cart
+              <Plus size={16} strokeWidth={3} /> Add to Cart
             </button>
           ) : (
-            <div className="flex items-center bg-white/10 backdrop-blur-md rounded-2xl p-1 gap-1 border border-white/20">
+            <div className="flex items-center bg-white/15 backdrop-blur-xl rounded-2xl p-1 gap-1 border border-white/25">
               <button 
                 onClick={(e) => { e.stopPropagation(); onDecrease(item.id); }} 
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/10 hover:bg-red-500/80 flex items-center justify-center transition active:scale-90"
+                className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white/10 hover:bg-red-500/80 flex items-center justify-center transition active:scale-90 cursor-pointer"
               >
-                <Minus size={14} className="text-white" strokeWidth={3} />
+                <Minus size={16} className="text-white" strokeWidth={3} />
               </button>
-              <span className="font-black text-white text-xs sm:text-sm w-8 sm:w-10 text-center">{cartQty}</span>
+              <span className="font-black text-white text-sm sm:text-base w-9 sm:w-11 text-center">{cartQty}</span>
               <button 
                 onClick={(e) => { e.stopPropagation(); onIncrease(item.id); }} 
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white hover:bg-amber-400 flex items-center justify-center transition active:scale-90"
+                className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white hover:bg-amber-400 flex items-center justify-center transition active:scale-90 cursor-pointer"
               >
-                <Plus size={14} className="text-gray-900" strokeWidth={3} />
+                <Plus size={16} className="text-gray-900" strokeWidth={3} />
               </button>
             </div>
           )}
@@ -141,65 +182,137 @@ const MenuCard = ({ item, cartQty, onAdd, onIncrease, onDecrease }) => {
   );
 };
 
+// ─── Food Details Modal [NEW] ─────────────────────────────────────────────
+const ItemDetailModal = ({ item, onClose, darkMode }) => {
+  if (!item) return null;
+  
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}>
+      <div 
+        className={`${darkMode ? 'bg-[#151515] text-white border-white/10' : 'bg-white text-gray-900'} w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl border transition-all duration-500 animate-in zoom-in-95 backdrop-blur-sm`}
+        style={{ maxHeight: '90vh', overflowY: 'auto' }}
+      >
+        <div className="relative h-64 sm:h-80">
+          <img src={getFoodImage(item)} alt={item.name} className="w-full h-full object-cover" onError={e => e.target.src = '/food_placeholder.png'} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+          <button 
+            onClick={onClose}
+            className="absolute top-5 right-5 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/50 transition cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+          <div className="absolute bottom-6 left-6 right-6">
+             <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-0.5 text-amber-400">
+                   {[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < 4 ? "currentColor" : "none"} />)}
+                </div>
+                <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest">(4.8 / 5.0)</span>
+             </div>
+             <h2 className="text-2xl sm:text-4xl font-serif italic text-white leading-tight">{item.name}</h2>
+          </div>
+        </div>
+
+        <div className="p-7 sm:p-9">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col">
+               <span className={`${darkMode ? 'text-gray-500' : 'text-gray-400'} text-[10px] font-black uppercase tracking-widest mb-1`}>Premium Dish</span>
+               <span className="text-amber-500 font-black text-2xl sm:text-3xl">₹{item.price.toLocaleString('en-IN')}</span>
+            </div>
+            <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 ${darkMode ? 'border-amber-500/30 text-amber-500' : 'border-amber-500/20 text-amber-600'}`}>
+               Chef Special
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <section>
+              <h3 className={`text-xs font-black uppercase tracking-[0.2em] mb-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Description</h3>
+              <p className={`text-sm sm:text-base leading-relaxed font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                {item.description || "Indulge in our exquisite " + item.name + ", prepared with the finest ingredients and traditional culinary techniques. A balanced harmony of flavors that captures the essence of authentic cuisine."}
+              </p>
+            </section>
+
+          </div>
+
+          <button 
+            onClick={onClose}
+            className="w-full mt-9 bg-amber-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+          >
+            Explore More Dishes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Cart Panel (slide-up) ────────────────────────────────────────────────────
-const CartPanel = ({ cart, total, onClose, onIncrease, onDecrease, onRemove, onPlaceOrder, placing }) => {
+const CartPanel = ({ cart, total, onClose, onIncrease, onDecrease, onRemove, onPlaceOrder, placing, darkMode }) => {
   const itemCount = cart.reduce((s, i) => s + i.quantity, 0);
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center px-4 sm:px-0" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
       <div
-        className="bg-white w-full max-w-lg rounded-t-3xl shadow-2xl"
+        className={`${darkMode ? 'bg-[#151515] text-white' : 'bg-white text-gray-900'} w-full max-w-lg rounded-t-[2.5rem] shadow-2xl transition-all duration-500 animate-in slide-in-from-bottom`}
         style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
       >
         {/* Handle bar */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
+        <div className="flex justify-center pt-4 pb-2">
+          <div className={`w-12 h-1.5 rounded-full ${darkMode ? 'bg-gray-800' : 'bg-gray-100'}`} />
         </div>
 
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-50">
+        <div className={`flex justify-between items-center px-6 py-4 border-b ${darkMode ? 'border-white/5' : 'border-gray-50'}`}>
           <div>
-            <h2 className="text-xl font-black text-gray-900">Your Cart</h2>
-            <p className="text-xs text-gray-400 font-medium">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+            <h2 className={`text-lg font-black uppercase tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>Your Cart</h2>
+            <p className={`text-[9px] uppercase tracking-[0.2em] font-black ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+               {itemCount} item{itemCount !== 1 ? 's' : ''} in bag
+            </p>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center cursor-pointer transition">
-            <X size={18} className="text-gray-600" />
+          <button onClick={onClose} className={`w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ${darkMode ? 'bg-white/5 text-white hover:bg-white/10' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            <X size={18} />
           </button>
         </div>
 
         {/* Items */}
-        <div className="overflow-y-auto flex-1 px-6">
+        <div className="overflow-y-auto flex-1 px-8 py-4 no-scrollbar">
           {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <ShoppingCart size={40} className="text-gray-200" />
-              <p className="text-gray-400 font-bold text-sm">Your cart is empty</p>
-              <button onClick={onClose} className="text-amber-600 font-black text-sm">Browse Menu</button>
+            <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
+              <ShoppingCart size={48} className="text-amber-500" strokeWidth={1} />
+              <p className="font-bold text-sm">Your bag is empty</p>
+              <button onClick={onClose} className="text-amber-500 font-black text-sm uppercase tracking-widest">Browse Menu</button>
             </div>
           ) : (
-            cart.map(item => (
-              <CartItem key={item.id} item={item} onIncrease={onIncrease} onDecrease={onDecrease} onRemove={onRemove} />
-            ))
+            <div className="space-y-1">
+               {cart.map(item => (
+                 <CartItem key={item.id} item={item} onIncrease={onIncrease} onDecrease={onDecrease} onRemove={onRemove} darkMode={darkMode} />
+               ))}
+            </div>
           )}
         </div>
 
         {/* Footer */}
         {cart.length > 0 && (
-          <div className="p-6 border-t border-gray-50 bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-gray-500 font-bold text-sm">Order Total</span>
-              <span className="font-black text-2xl text-gray-900">₹{total.toLocaleString('en-IN')}</span>
+          <div className={`${darkMode ? 'bg-[#0F0F0F]' : 'bg-white'} p-6 border-t ${darkMode ? 'border-white/5' : 'border-gray-50'}`}>
+            <div className="flex justify-between items-center mb-5">
+              <div className="flex flex-col">
+                 <span className={`text-[9px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Subtotal Amount</span>
+                 <span className={`font-black text-2xl ${darkMode ? 'text-white' : 'text-gray-900'}`}>₹{total.toLocaleString('en-IN')}</span>
+              </div>
+              <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${darkMode ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
+                 Pay in Kitchen
+              </div>
             </div>
             <button
               onClick={onPlaceOrder}
               disabled={placing}
-              className="w-full bg-amber-500 hover:bg-amber-600 active:scale-98 disabled:opacity-60 text-white font-black py-4 rounded-2xl text-base transition-all cursor-pointer shadow-lg shadow-amber-100 flex items-center justify-center gap-2"
+              className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:opacity-60 text-white font-black py-3.5 rounded-2xl text-base transition-all cursor-pointer shadow-2xl shadow-amber-500/30 flex items-center justify-center gap-3"
             >
               {placing ? (
-                <><span className="animate-spin">⚙️</span> Placing Order...</>
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Placing...</>
               ) : (
-                <><CheckCircle size={20} /> Place Order · ₹{total.toLocaleString('en-IN')}</>
+                <><CheckCircle size={20} className="stroke-[3]" /> Place Order · ₹{total.toLocaleString('en-IN')}</>
               )}
             </button>
-            <p className="text-center text-xs text-gray-400 font-medium mt-3">Your order will go directly to the kitchen</p>
+            <p className={`text-center text-[9px] font-bold mt-4 tracking-wide ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Your delectable order will be served shortly</p>
           </div>
         )}
       </div>
@@ -239,11 +352,18 @@ const CustomerMenu = () => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('darkMode') === 'true';
+  });
+  const [selectedItem, setSelectedItem] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const [customer, setCustomer] = useState(null);
   const [restaurantName, setRestaurantName] = useState("Loading...");
   const searchRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', darkMode);
+  }, [darkMode]);
 
   useEffect(() => {
     if (!tableId) return;
@@ -372,16 +492,24 @@ const CustomerMenu = () => {
   return (
     <div className={`min-h-screen transition-colors ${darkMode ? 'bg-[#0D0D0D] text-white' : 'bg-gray-50'}`}>
       {/* ── Hero Header ─────────────────────────────────────── */}
-      <div className={`relative ${darkMode ? 'bg-[#0D0D0D]' : 'bg-white'} border-b ${darkMode ? 'border-gray-800' : 'border-gray-100'} sticky top-0 z-30 shadow-sm transition-all duration-300 h-16 flex items-center`}>
-        <div className="px-4 w-full flex items-center justify-between">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/30">
-                <ChefHat size={16} className="text-white" />
-              </div>
-              <h1 className={`font-serif italic text-lg sm:text-xl ${darkMode ? 'text-amber-400' : 'text-gray-900'} leading-none`}>{restaurantName}</h1>
-            </div>
-            <p className={`text-[10px] font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'} ml-10 -mt-1`}>Table {tableId}</p>
+      <div className={`relative ${darkMode ? 'bg-[#0D0D0D]' : 'bg-white'} border-b ${darkMode ? 'border-white/5' : 'border-gray-100'} sticky top-0 z-40 shadow-sm transition-all duration-300 min-h-20 flex items-center py-4`}>
+        <div className="px-6 w-full flex flex-wrap items-center justify-between gap-y-4">
+          <div className="flex items-center gap-4 min-w-[200px]">
+               <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-amber-500/20 flex-shrink-0">
+                 <ChefHat size={24} strokeWidth={2.5} className="text-white" />
+               </div>
+               <div className="flex flex-col">
+                  <h1 className={`font-serif italic text-lg sm:text-2xl ${darkMode ? 'text-amber-400' : 'text-gray-900'} leading-[1.1] mb-1`}>
+                     {restaurantName}
+                  </h1>
+                  <div className="flex items-center gap-2.5">
+                     <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg ${darkMode ? 'bg-white/5 text-gray-500' : 'bg-gray-100 text-gray-400'} text-[9px] font-black uppercase tracking-widest`}>
+                        Prime Guest
+                     </div>
+                     <span className="w-1 h-1 bg-amber-500 rounded-full" />
+                     <span className="text-amber-600 font-black text-xs">Table {tableId}</span>
+                  </div>
+               </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -438,15 +566,15 @@ const CustomerMenu = () => {
 
       {/* ── Hero Banner ─────────────────────────────────────── */}
       {!search && activeCategory === 'all' && (
-        <div className="relative h-48 sm:h-56 overflow-hidden">
-          <img src="/food_hero_banner.png" alt="Menu" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D] via-black/20 to-transparent flex flex-col justify-end p-6 pb-8">
-            <div className="flex items-center gap-2 mb-2 text-amber-400">
-               <span className="h-[1px] w-8 bg-amber-400" />
-               <span className="text-[10px] font-black uppercase tracking-[0.3em]">AUTHENTIC PUNJABI DHABA</span>
+        <div className="relative h-64 sm:h-80 overflow-hidden mx-4 my-6 rounded-[2.5rem] shadow-2xl shadow-black/20 group">
+          <img src="/food_hero_banner.png" alt="Menu" className="w-full h-full object-cover transform scale-105 transition-transform duration-1000 group-hover:scale-110" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-7 sm:p-12 pb-10 sm:pb-14 translate-y-0 text-left">
+            <div className="flex items-center gap-3 mb-4 text-amber-400">
+               <span className="h-[2px] w-12 bg-amber-400/50 rounded-full" />
+               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.4em]">Handcrafted Cuisine</span>
             </div>
-            <h2 className="text-white font-serif italic text-4xl sm:text-5xl leading-tight mb-2">Explore Our Menu</h2>
-            <p className="text-white/60 font-medium text-xs sm:text-sm max-w-xs leading-relaxed">Delicious flavors crafted with passion and fresh ingredients.</p>
+            <h2 className="text-white font-serif italic text-3xl sm:text-6xl leading-tight mb-4 drop-shadow-2xl">Explore Our Menu</h2>
+            <p className="text-white/70 font-medium text-xs sm:text-lg max-w-sm leading-relaxed italic border-l-2 border-amber-500/30 pl-4">Delicious flavors crafted with passion and fresh, locally sourced ingredients.</p>
           </div>
         </div>
       )}
@@ -532,7 +660,7 @@ const CustomerMenu = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:gap-6">
+          <div className="grid grid-cols-2 gap-3.5 sm:gap-8">
             {filteredItems.map(item => (
               <MenuCard
                 key={item.id}
@@ -541,6 +669,7 @@ const CustomerMenu = () => {
                 onAdd={addToCart}
                 onIncrease={increaseQty}
                 onDecrease={decreaseQty}
+                onShowDetails={setSelectedItem}
               />
             ))}
           </div>
@@ -566,12 +695,22 @@ const CustomerMenu = () => {
         <CartPanel
           cart={cart}
           total={total}
+          darkMode={darkMode}
           onClose={() => setShowCart(false)}
           onIncrease={increaseQty}
           onDecrease={decreaseQty}
           onRemove={(id) => { removeFromCart(id); if (cart.length <= 1) setShowCart(false); }}
           onPlaceOrder={placeOrder}
           placing={placing}
+        />
+      )}
+
+      {/* ── Food Detail Modal [NEW] ─────────────────────────── */}
+      {selectedItem && (
+        <ItemDetailModal 
+          item={selectedItem} 
+          onClose={() => setSelectedItem(null)} 
+          darkMode={darkMode}
         />
       )}
 

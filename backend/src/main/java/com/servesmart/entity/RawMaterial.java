@@ -20,6 +20,7 @@ public class RawMaterial {
     @Column(nullable = false)
     private String unit; // kg, liters, pieces, etc.
 
+    @Column(name = "min_threshold")
     private Double minThreshold;
 
     @ManyToOne(fetch = FetchType.LAZY)

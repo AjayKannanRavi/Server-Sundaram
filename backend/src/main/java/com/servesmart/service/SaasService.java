@@ -20,26 +20,100 @@ public class SaasService {
     private final com.servesmart.repository.OrderRepository orderRepository;
     private final com.servesmart.repository.PaymentRepository paymentRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final com.servesmart.repository.SaasSettingsRepository saasSettingsRepository;
     private final com.servesmart.config.DatabaseProvisioner databaseProvisioner;
+
+    @org.springframework.beans.factory.annotation.Value("${spring.datasource.username}")
+    private String dbUser;
+
+    @org.springframework.beans.factory.annotation.Value("${spring.datasource.password}")
+    private String dbPass;
+
+    @org.springframework.beans.factory.annotation.Value("${app.database.host:localhost}")
+    private String dbHost;
+
+    @org.springframework.beans.factory.annotation.Value("${app.database.port:3306}")
+    private String dbPort;
+
+    @org.springframework.beans.factory.annotation.Value("${app.database.params:useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}")
+    private String dbParams;
 
     public java.util.Map<String, Object> getPlatformStats() {
         java.util.Map<String, Object> stats = new java.util.HashMap<>();
-        stats.put("totalHotels", restaurantRepository.count());
-        stats.put("activeHotels", restaurantRepository.countByIsActive(true));
-        stats.put("totalOrders", orderRepository.count());
-        Double revenue = paymentRepository.getTotalPlatformRevenue();
-        stats.put("totalRevenue", revenue != null ? revenue : 0.0);
+        List<Restaurant> hotels = restaurantRepository.findAll();
+        stats.put("totalHotels", (long) hotels.size());
+        stats.put("activeHotels", hotels.stream().filter(Restaurant::getIsActive).count());
+        
+        long totalOrders = 0;
+        double totalRevenue = 0.0;
+        
+        // Aggregate from all tenant databases
+        for (Restaurant hotel : hotels) {
+            try {
+                String dbName = "ss_hotel_" + hotel.getId();
+                // We use a simple JDBC query here because Hibernate is scoped to one tenant
+                totalOrders += fetchCountFromTenant(dbName, "restaurant_orders");
+                Double rev = fetchSumFromTenant(dbName, "payments", "total_amount");
+                totalRevenue += (rev != null ? rev : 0.0);
+            } catch (Exception e) {
+                System.err.println("Could not aggregate stats for hotel " + hotel.getId() + " on DB " + "ss_hotel_" + hotel.getId() + ": " + e.getMessage());
+            }
+        }
+
+        stats.put("totalOrders", totalOrders);
+        stats.put("totalRevenue", Math.round(totalRevenue * 100.0) / 100.0);
         stats.put("systemStatus", "OPERATIONAL");
         return stats;
     }
 
+    private long fetchCountFromTenant(String dbName, String tableName) throws Exception {
+        String url = "jdbc:mysql://" + dbHost + ":" + dbPort + "/" + dbName + "?" + dbParams;
+        try (java.sql.Connection conn = java.sql.DriverManager.getConnection(url, dbUser, dbPass);
+             java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+            return rs.next() ? rs.getLong(1) : 0;
+        }
+    }
+
+    private Double fetchSumFromTenant(String dbName, String tableName, String colName) throws Exception {
+        String url = "jdbc:mysql://" + dbHost + ":" + dbPort + "/" + dbName + "?" + dbParams;
+        try (java.sql.Connection conn = java.sql.DriverManager.getConnection(url, dbUser, dbPass);
+             java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery("SELECT SUM(" + colName + ") FROM " + tableName)) {
+            return rs.next() ? rs.getDouble(1) : 0.0;
+        }
+    }
+
     public java.util.Map<String, Object> getSystemSettings() {
-        java.util.Map<String, Object> settings = new java.util.HashMap<>();
-        settings.put("platformName", "Vitteno Technologies");
-        settings.put("maintenanceMode", false);
-        settings.put("freePlanLimit", 10);
-        settings.put("premiumMonthlyPrice", 49.99);
-        return settings;
+        com.servesmart.entity.SaasSettings settings = saasSettingsRepository.findAll().stream().findFirst()
+            .orElseGet(() -> {
+                com.servesmart.entity.SaasSettings s = new com.servesmart.entity.SaasSettings();
+                return saasSettingsRepository.save(s);
+            });
+            
+        if (settings == null) {
+            settings = new com.servesmart.entity.SaasSettings();
+        }
+            
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        map.put("platformName", settings.getPlatformName());
+        map.put("maintenanceMode", settings.getMaintenanceMode());
+        map.put("freePlanLimit", settings.getFreePlanLimit());
+        map.put("premiumMonthlyPrice", settings.getPremiumMonthlyPrice());
+        return map;
+    }
+
+    @Transactional
+    public void updateSystemSettings(java.util.Map<String, Object> updates) {
+        com.servesmart.entity.SaasSettings settings = saasSettingsRepository.findAll().stream().findFirst()
+            .orElseGet(com.servesmart.entity.SaasSettings::new);
+        
+        if (updates.containsKey("platformName")) settings.setPlatformName((String) updates.get("platformName"));
+        if (updates.containsKey("premiumMonthlyPrice")) settings.setPremiumMonthlyPrice(Double.valueOf(updates.get("premiumMonthlyPrice").toString()));
+        if (updates.containsKey("maintenanceMode")) settings.setMaintenanceMode((Boolean) updates.get("maintenanceMode"));
+        if (updates.containsKey("freePlanLimit")) settings.setFreePlanLimit((Integer) updates.get("freePlanLimit"));
+        
+        saasSettingsRepository.save(settings);
     }
 
     public java.util.Map<String, Object> getHotelDashboardStats(Long hotelId) {
@@ -120,6 +194,22 @@ public class SaasService {
         stats.put("staffCredentials", credentials);
         
         return stats;
+    }
+
+    @Transactional
+    public void deleteHotel(Long id) {
+        if (id == null) return;
+        Restaurant hotel = getHotelById(id);
+        if (hotel == null) return;
+        // Step 1: Drop the tenant database
+        try {
+            databaseProvisioner.dropTenantDatabase(id.toString());
+        } catch (Exception e) {
+            System.err.println("Warning: Could not drop database for hotel " + id + ": " + e.getMessage());
+        }
+        // Step 2: Delete the restaurant record and associated staff (due to cascade or manual delete)
+        staffRepository.deleteAllByRestaurantId(id);
+        restaurantRepository.delete(hotel);
     }
 
     public List<Restaurant> getAllHotels() {

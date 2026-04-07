@@ -56,4 +56,14 @@ public class SaasController {
     public java.util.Map<String, Object> getHotelDashboardStats(@PathVariable Long id) {
         return saasService.getHotelDashboardStats(id);
     }
+
+    @DeleteMapping("/hotels/{id}")
+    public void deleteHotel(@PathVariable Long id) {
+        saasService.deleteHotel(id);
+    }
+
+    @PutMapping("/settings")
+    public void updateSettings(@RequestBody java.util.Map<String, Object> settings) {
+        saasService.updateSystemSettings(settings);
+    }
 }

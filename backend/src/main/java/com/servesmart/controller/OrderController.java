@@ -46,9 +46,9 @@ public class OrderController {
         return ResponseEntity.ok(orderService.updateOrderStatus(id, status));
     }
 
-    @PostMapping("/{id}/reject")
-    public ResponseEntity<RestaurantOrder> rejectOrder(@PathVariable Long id, @RequestBody String reason) {
-        return ResponseEntity.ok(orderService.rejectOrder(id, reason));
+    @PutMapping("/{id}/status/reject")
+    public ResponseEntity<RestaurantOrder> rejectOrder(@PathVariable Long id, @RequestBody RejectRequest request) {
+        return ResponseEntity.ok(orderService.rejectOrder(id, request.getReason()));
     }
 
     @PutMapping("/{id}/payment")

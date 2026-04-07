@@ -28,6 +28,9 @@ public class CustomerService {
     @Autowired
     private AppWorkflowProperties appWorkflowProperties;
 
+    @Autowired
+    private SmsService smsService;
+
     public void sendOtp(String mobileNumber, String name) {
         try {
             Long restaurantId = TenantContext.requireCurrentTenantAsLong();
@@ -49,10 +52,10 @@ public class CustomerService {
             customer.setOtpGeneratedAt(LocalDateTime.now());
 
             customerRepository.save(customer);
-
-            System.out.println("========================================");
-            System.out.println("OTP for " + mobileNumber + " (" + (name != null ? name : "User") + "): " + otp);
-            System.out.println("========================================");
+            
+            // Standardized SMS/OTP Sending
+            smsService.sendOtp(mobileNumber, otp);
+            
         } catch (Exception e) {
             System.err.println("Error sending OTP: " + e.getMessage());
             e.printStackTrace();

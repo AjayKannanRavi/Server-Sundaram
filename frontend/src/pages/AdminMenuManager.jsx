@@ -95,7 +95,7 @@ const AdminMenuManager = () => {
   // Staff form state
   const [showStaffForm, setShowStaffForm] = useState(false);
   const [editingStaffId, setEditingStaffId] = useState(null);
-  const [staffForm, setStaffForm] = useState({ name: '', role: 'KITCHEN', username: '', phone: '' });
+  const [staffForm, setStaffForm] = useState({ name: '', role: 'KITCHEN', username: '', phone: '', password: '' });
 
   // Raw Material form state
   const [showRawForm, setShowRawForm] = useState(false);
@@ -315,13 +315,13 @@ const AdminMenuManager = () => {
       if (editingStaffId) await axios.put(`${API}/staff/${editingStaffId}`, staffForm);
       else await axios.post(`${API}/staff`, staffForm);
       setShowStaffForm(false); setEditingStaffId(null);
-      setStaffForm({ name: '', role: 'KITCHEN', username: '', phone: '' });
+      setStaffForm({ name: '', role: 'KITCHEN', username: '', phone: '', password: '' });
       fetchAll();
     } catch { alert('Failed to save staff member'); }
   };
   const handleStaffEdit = (s) => {
     setEditingStaffId(s.id);
-    setStaffForm({ name: s.name, role: s.role, username: s.username, phone: s.phone });
+    setStaffForm({ name: s.name, role: s.role, username: s.username, phone: s.phone, password: '' }); // Keep password empty for edits
     setShowStaffForm(true);
   };
   const handleStaffDelete = async (id) => {
@@ -1489,7 +1489,7 @@ const AdminMenuManager = () => {
           <div>
             <div className="flex justify-between items-center mb-8">
               <div><h1 className="text-3xl font-black text-gray-900">Staff Management</h1><p className="text-gray-500 font-medium mt-1">Manage your restaurant team.</p></div>
-              <button onClick={() => { setEditingStaffId(null); setStaffForm({ name: '', role: 'KITCHEN', username: '', phone: '' }); setShowStaffForm(true); }} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 cursor-pointer flex items-center gap-2 shadow-lg shadow-blue-100 transition">
+              <button onClick={() => { setEditingStaffId(null); setStaffForm({ name: '', role: 'KITCHEN', username: '', phone: '', password: '' }); setShowStaffForm(true); }} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 cursor-pointer flex items-center gap-2 shadow-lg shadow-blue-100 transition">
                 <Plus size={18} /> Add Staff
               </button>
             </div>
@@ -1501,6 +1501,17 @@ const AdminMenuManager = () => {
                   <div><label className="font-bold text-sm text-gray-500 mb-1 block">Role</label><select value={staffForm.role} onChange={e => setStaffForm({ ...staffForm, role: e.target.value })} className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-blue-500 outline-none transition bg-white"><option value="ADMIN">Admin</option><option value="KITCHEN">Kitchen</option><option value="WAITER">Waiter</option></select></div>
                   <div><label className="font-bold text-sm text-gray-500 mb-1 block">Username</label><input required value={staffForm.username} onChange={e => setStaffForm({ ...staffForm, username: e.target.value })} className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-blue-500 outline-none transition" placeholder="john.doe" /></div>
                   <div><label className="font-bold text-sm text-gray-500 mb-1 block">Phone</label><input required value={staffForm.phone} onChange={e => setStaffForm({ ...staffForm, phone: e.target.value })} className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-blue-500 outline-none transition" placeholder="+1 234 567 890" /></div>
+                  <div className="md:col-span-2">
+                    <label className="font-bold text-sm text-gray-500 mb-1 block">Password {editingStaffId && '(Leave blank to keep current)'}</label>
+                    <input 
+                      required={!editingStaffId} 
+                      type="password" 
+                      value={staffForm.password} 
+                      onChange={e => setStaffForm({ ...staffForm, password: e.target.value })} 
+                      className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-blue-500 outline-none transition" 
+                      placeholder="••••••••" 
+                    />
+                  </div>
                 </div>
                 <div className="mt-6 flex gap-3">
                   <button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold cursor-pointer hover:bg-blue-700 transition">Save</button>

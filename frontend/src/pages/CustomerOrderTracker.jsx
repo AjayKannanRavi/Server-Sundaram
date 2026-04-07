@@ -8,17 +8,18 @@ import { API_BASE_URL, WS_BASE_URL } from '../api/api';
 // ─────────────────────────────────────────────────
 // StatusBadge helper
 // ─────────────────────────────────────────────────
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status, darkMode }) => {
   const cfg = {
-    PENDING:   { cls: 'bg-yellow-100 text-yellow-700', label: '⏳ Pending' },
-    ACCEPTED:  { cls: 'bg-blue-100  text-blue-700',   label: '✓ Accepted' },
-    PREPARING: { cls: 'bg-orange-100 text-orange-700', label: '🍳 Preparing' },
-    READY:     { cls: 'bg-purple-100 text-purple-700', label: '🔔 Ready' },
-    SERVED:    { cls: 'bg-green-100 text-green-700',  label: '✅ Served' },
-    COMPLETED: { cls: 'bg-emerald-100 text-emerald-700', label: '✓ Completed' },
-    REJECTED:  { cls: 'bg-red-100   text-red-700',    label: '✕ Rejected' },
+    PENDING:   { cls: darkMode ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-yellow-100 text-yellow-700', label: '⏳ Pending' },
+    ACCEPTED:  { cls: darkMode ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-blue-100  text-blue-700',   label: '✓ Accepted' },
+    PREPARING: { cls: darkMode ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-orange-100 text-orange-700', label: '🍳 Preparing' },
+    READY:     { cls: darkMode ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' : 'bg-purple-100 text-purple-700', label: '🔔 Ready' },
+    SERVED:    { cls: darkMode ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-green-100 text-green-700',  label: '✅ Served' },
+    COMPLETED: { cls: darkMode ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-emerald-100 text-emerald-700', label: '✓ Completed' },
+    REJECTED:  { cls: darkMode ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-red-100   text-red-700',    label: '✕ Rejected' },
   }[status] || { cls: 'bg-gray-100 text-gray-600', label: status };
-  return <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${cfg.cls}`}>{cfg.label}</span>;
+  
+  return <span className={`text-[9px] font-black px-3 py-1.5 rounded-full border ${cfg.cls} uppercase tracking-widest`}>{cfg.label}</span>;
 };
 
 // ─────────────────────────────────────────────────
@@ -32,24 +33,24 @@ const STATUSES = [
   { key: 'SERVED',    label: 'Served',    icon: <Coffee /> },
 ];
 
-const StatusBar = ({ status }) => {
+const StatusBar = ({ status, darkMode }) => {
   if (status === 'REJECTED') return null;
   if (status === 'COMPLETED') {
     return (
-      <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 font-bold text-xs p-3 rounded-xl mb-4">
-        <CheckCircle size={16} /> Order completed
+      <div className={`flex items-center gap-2 font-black text-[10px] uppercase tracking-widest p-4 rounded-2xl mb-6 ${darkMode ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
+        <CheckCircle size={16} /> Order fully completed
       </div>
     );
   }
   const cur = STATUSES.findIndex(s => s.key === status);
   return (
-    <div className="flex justify-between items-center mb-6">
+    <div className="flex justify-between items-center mb-10 px-0 sm:px-2">
       {STATUSES.map((s, i) => (
-        <div key={s.key} className="flex flex-col items-center gap-1">
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${i <= cur ? 'bg-green-500 text-white shadow-md' : 'bg-gray-100 text-gray-300'}`}>
-            {React.cloneElement(s.icon, { size: 16 })}
+        <div key={s.key} className="flex flex-col items-center gap-1.5">
+          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-500 ${i <= cur ? 'bg-green-500 text-white shadow-xl shadow-green-500/20 scale-110' : darkMode ? 'bg-white/5 text-white/20' : 'bg-gray-100 text-gray-300'}`}>
+            {React.cloneElement(s.icon, { size: 14, className: "sm:w-[18px] sm:h-[18px]", strokeWidth: 2.5 })}
           </div>
-          <span className={`text-[9px] font-black uppercase tracking-tighter ${i <= cur ? 'text-green-600' : 'text-gray-300'}`}>{s.label}</span>
+          <span className={`text-[7px] sm:text-[8px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] ${i <= cur ? 'text-green-500' : darkMode ? 'text-white/20' : 'text-gray-300'}`}>{s.label}</span>
         </div>
       ))}
     </div>
@@ -59,53 +60,53 @@ const StatusBar = ({ status }) => {
 // ─────────────────────────────────────────────────
 // Add More / Finish Order Modal
 // ─────────────────────────────────────────────────
-const ChoiceModal = ({ tableId, hotelId, onClose, onFinish }) => (
-  <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-    <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl">
-      <div className="text-center mb-2">
-        <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-100">
-          <Coffee size={28} className="text-white" />
+const ChoiceModal = ({ tableId, hotelId, onClose, onFinish, darkMode }) => (
+  <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+    <div className={`${darkMode ? 'bg-[#151515] text-white border-white/10' : 'bg-white text-gray-900'} rounded-[2.5rem] p-9 w-full max-w-sm shadow-2xl border transition-all duration-500 animate-in zoom-in-95`}>
+      <div className="text-center mb-4">
+        <div className="w-16 h-16 rounded-[1.5rem] bg-green-500 flex items-center justify-center mx-auto mb-5 shadow-2xl shadow-green-500/30">
+          <Coffee size={32} strokeWidth={2.5} className="text-white" />
         </div>
-        <h2 className="text-2xl font-black text-gray-900 mb-1">Dishes Served!</h2>
-        <p className="text-gray-500 font-medium text-sm">Your food has arrived. What would you like to do?</p>
+        <h2 className="text-3xl font-black mb-1">Served!</h2>
+        <p className={`${darkMode ? 'text-gray-500' : 'text-gray-400'} font-bold text-xs uppercase tracking-widest`}>Dishes have arrived</p>
       </div>
 
-      <div className="space-y-3 mt-6">
+      <div className="space-y-4 mt-8">
         <button
           onClick={() => {
             const menuUrl = `/${hotelId}/menu?tableId=${tableId}`;
             window.location.href = menuUrl;
           }}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-blue-400 hover:bg-blue-50 transition group cursor-pointer"
+          className={`w-full flex items-center gap-5 p-5 rounded-[1.5rem] border-2 transition-all duration-300 group cursor-pointer ${darkMode ? 'border-white/5 bg-white/5 hover:border-amber-500 hover:bg-amber-500/5' : 'border-gray-100 hover:border-amber-500 hover:bg-amber-50'}`}
         >
-          <div className="w-10 h-10 rounded-xl bg-blue-100 group-hover:bg-blue-500 flex items-center justify-center transition">
-            <Plus size={20} className="text-blue-600 group-hover:text-white transition" />
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${darkMode ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-100 text-amber-600'}`}>
+            <Plus size={24} strokeWidth={3} />
           </div>
           <div className="text-left">
-            <p className="font-black text-gray-900">Add More Items</p>
-            <p className="text-xs font-medium text-gray-400">Order additional dishes</p>
+            <p className="font-black text-sm uppercase tracking-widest">Add Items</p>
+            <p className={`text-[10px] font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Order additional delicacies</p>
           </div>
         </button>
 
         <button
           onClick={onFinish}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-green-400 hover:bg-green-50 transition group cursor-pointer"
+          className={`w-full flex items-center gap-5 p-5 rounded-[1.5rem] border-2 transition-all duration-300 group cursor-pointer ${darkMode ? 'border-white/5 bg-white/5 hover:border-green-500 hover:bg-green-500/5' : 'border-gray-100 hover:border-green-500 hover:bg-green-50'}`}
         >
-          <div className="w-10 h-10 rounded-xl bg-green-100 group-hover:bg-green-500 flex items-center justify-center transition">
-            <Receipt size={20} className="text-green-600 group-hover:text-white transition" />
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${darkMode ? 'bg-green-500/10 text-green-500' : 'bg-green-100 text-green-600'}`}>
+            <Receipt size={24} strokeWidth={3} />
           </div>
           <div className="text-left">
-            <p className="font-black text-gray-900">Finish Order</p>
-            <p className="text-xs font-medium text-gray-400">Confirm receipt & view bill</p>
+            <p className="font-black text-sm uppercase tracking-widest">View Bill</p>
+            <p className={`text-[10px] font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Proceed to billing</p>
           </div>
         </button>
       </div>
 
       <button
         onClick={onClose}
-        className="w-full mt-4 py-2 text-gray-400 text-xs font-bold hover:text-gray-600 transition cursor-pointer"
+        className="w-full mt-6 py-2 text-gray-500 text-[10px] font-black uppercase tracking-widest hover:text-amber-500 transition cursor-pointer"
       >
-        Decide later
+        I'm still eating
       </button>
     </div>
   </div>
@@ -125,6 +126,13 @@ const CustomerOrderTracker = () => {
   const [loading, setLoading]             = useState(true);
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [confirming, setConfirming]       = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('darkMode') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', darkMode);
+  }, [darkMode]);
 
   // Fetch session orders on mount
   useEffect(() => {
@@ -228,83 +236,118 @@ const CustomerOrderTracker = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-36">
+    <div className={`min-h-screen transition-colors duration-500 pb-44 ${darkMode ? 'bg-[#0D0D0D] text-white' : 'bg-gray-50 text-gray-900'}`}>
+      {/* Universal Header Fix */}
+      <div className={`sticky top-0 z-40 h-20 border-b flex items-center px-6 backdrop-blur-xl transition-all ${darkMode ? 'bg-[#0D0D0D]/90 border-white/5' : 'bg-white/90 border-gray-100'}`}>
+        <div className="max-w-2xl mx-auto w-full flex justify-between items-center">
+           <div className="flex items-center gap-4">
+              <div 
+                onClick={() => navigate(`/${hotelId}/menu?tableId=${tableId}`)}
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center transition cursor-pointer ${darkMode ? 'bg-white/5 text-white hover:bg-white/10' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <ShoppingBag size={20} strokeWidth={2.5} />
+              </div>
+              <div className="flex flex-col">
+                 <h2 className={`font-serif italic text-lg leading-tight ${darkMode ? 'text-amber-400' : 'text-gray-900'}`}>Your Session</h2>
+                 <p className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Table {tableId}</p>
+              </div>
+           </div>
+           
+           <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${darkMode ? 'bg-amber-400 text-gray-900 shadow-xl shadow-amber-400/20' : 'bg-gray-900 text-white shadow-xl shadow-gray-900/20'}`}
+            >
+              {darkMode ? '☀️' : '🌙'}
+            </button>
+        </div>
+      </div>
+
       {/* Choice modal */}
       {showChoiceModal && !isPaid && (
         <ChoiceModal
           tableId={tableId}
           hotelId={hotelId}
+          darkMode={darkMode}
           onClose={() => setShowChoiceModal(false)}
           onFinish={handleFinishOrder}
         />
       )}
 
-      <div className="max-w-2xl mx-auto p-4 pt-8">
+      <div className="max-w-2xl mx-auto p-6 pt-10">
         {/* Paid banner */}
         {isPaid && (
-          <div className="bg-green-500 text-white text-center py-3 rounded-2xl mb-8 font-black tracking-widest uppercase text-sm shadow-lg shadow-green-100 flex justify-center items-center gap-2">
-            <CheckCircle size={18} /> Visit Complete · Bill Paid
+          <div className="bg-emerald-500 text-white text-center py-4 rounded-3xl mb-10 font-black tracking-[0.2em] uppercase text-[10px] shadow-2xl shadow-emerald-500/30 flex justify-center items-center gap-3 animate-in slide-in-from-top duration-500">
+            <CheckCircle size={20} strokeWidth={3} /> Session Settled
           </div>
         )}
 
-        <h1 className="text-3xl font-black text-gray-900 text-center mb-1">My Orders</h1>
-        <p className="text-center text-gray-400 font-medium mb-8 text-sm">
-          Table {tableId} · {sessionOrders.length} order{sessionOrders.length > 1 ? 's' : ''}
-        </p>
+        <div className="text-center mb-12">
+            <h1 className={`text-3xl sm:text-5xl font-black mb-2 tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>Live Orders</h1>
+            <div className="flex items-center justify-center gap-3">
+               <span className={`h-[2px] w-8 rounded-full ${darkMode ? 'bg-amber-400/30' : 'bg-gray-200'}`} />
+               <p className={`text-xs font-black uppercase tracking-widest ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                 {sessionOrders.length} Activity Log{sessionOrders.length > 1 ? 's' : ''}
+               </p>
+               <span className={`h-[2px] w-8 rounded-full ${darkMode ? 'bg-amber-400/30' : 'bg-gray-200'}`} />
+            </div>
+        </div>
 
         {/* Order cards */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {sessionOrders.map((order, idx) => (
-            <div key={order.id} className={`bg-white rounded-3xl border shadow-sm overflow-hidden transition-all ${
-              order.status === 'SERVED' ? 'border-green-200 shadow-green-50' :
-              order.status === 'RECEIVED' ? 'border-emerald-100' :
-              order.status === 'REJECTED' ? 'border-red-100' :
-              'border-gray-100'
+            <div key={order.id} className={`rounded-[2.5rem] border overflow-hidden transition-all duration-500 shadow-2xl ${
+              darkMode ? 'bg-[#151515] border-white/5 shadow-black/40' : 
+              order.status === 'SERVED' ? 'bg-white border-green-200 shadow-green-500/5' : 'bg-white border-gray-100 shadow-gray-200/50'
             }`}>
               {/* Card header */}
-              <div className={`flex justify-between items-center px-6 py-4 ${
-                order.status === 'SERVED' ? 'bg-green-50' :
-                order.status === 'COMPLETED' ? 'bg-emerald-50/50' :
-                'bg-gray-50/50'
+              <div className={`flex justify-between items-center px-8 py-6 ${
+                darkMode ? 'bg-white/5' : 
+                order.status === 'SERVED' ? 'bg-green-50/50' : 'bg-gray-50/30'
               }`}>
-                <h3 className="font-black text-gray-900">Order #{idx + 1}</h3>
-                <StatusBadge status={order.status} />
+                <div className="flex flex-col">
+                   <span className={`text-[9px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Reference</span>
+                   <h3 className={`font-black text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>Order No. {idx + 1}</h3>
+                </div>
+                <StatusBadge status={order.status} darkMode={darkMode} />
               </div>
 
-              <div className="p-6">
+              <div className="p-8">
                 {/* Status bar */}
                 {order.status === 'REJECTED' ? (
-                  <div className="bg-red-50 text-red-800 p-3 rounded-2xl font-bold italic text-sm mb-4">
+                  <div className={`p-5 rounded-[1.5rem] font-bold italic text-xs mb-6 border ${darkMode ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-red-50 text-red-800 border-red-100'}`}>
                     Rejected: {order.rejectionReason || 'Kitchen could not process this order'}
                   </div>
                 ) : (
-                  <StatusBar status={order.status} />
+                  <StatusBar status={order.status} darkMode={darkMode} />
                 )}
 
                 {/* "Served – choose action" prompt per card if only this one is served */}
                 {order.status === 'SERVED' && !showChoiceModal && (
-                  <div className="bg-green-50 border border-green-100 rounded-2xl p-4 mb-4 flex items-center justify-between gap-3">
-                    <p className="text-green-700 font-bold text-sm">This order has arrived!</p>
+                  <div className={`rounded-[1.5rem] p-5 mb-8 flex items-center justify-between gap-4 border ${darkMode ? 'bg-green-500/10 border-green-500/20' : 'bg-green-50 border-green-100'}`}>
+                    <p className={`font-black text-xs uppercase tracking-widest ${darkMode ? 'text-green-500' : 'text-green-700'}`}>Your food is here!</p>
                     <button
                       onClick={() => setShowChoiceModal(true)}
-                      className="text-xs font-black bg-green-500 text-white px-3 py-1.5 rounded-xl cursor-pointer hover:bg-green-600 transition"
+                      className="text-[10px] font-black bg-green-500 text-white px-5 py-2.5 rounded-xl cursor-pointer hover:bg-green-600 transition-all shadow-xl shadow-green-500/20"
                     >
-                      Choose Action
+                      TAKE ACTION
                     </button>
                   </div>
                 )}
 
                 {/* Items list */}
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {order.items.map(item => (
-                    <div key={item.id} className="flex justify-between text-sm font-medium text-gray-700">
-                      <span>{item.quantity}× {item.menuItem.name}</span>
-                       <span className="font-bold">₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
+                    <div key={item.id} className="flex justify-between items-center group">
+                      <div className="flex flex-col">
+                         <span className={`text-sm font-black ${darkMode ? 'text-white' : 'text-gray-800'}`}>{item.menuItem.name}</span>
+                         <span className={`text-[10px] font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400 uppercase'}`}>{item.quantity} Unit{item.quantity > 1 ? 's' : ''}</span>
+                      </div>
+                      <span className={`font-black text-sm ${darkMode ? 'text-amber-400' : 'text-gray-900'}`}>₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between text-xs font-bold text-gray-400 pt-2 border-t border-gray-50">
-                    <span>Subtotal</span>
-                     <span>₹{order.totalAmount.toLocaleString('en-IN')}</span>
+                  <div className={`flex justify-between items-center pt-5 border-t ${darkMode ? 'border-white/5' : 'border-gray-50'}`}>
+                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Subtotal Amount</span>
+                    <span className={`font-black text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>₹{order.totalAmount.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>
@@ -313,50 +356,52 @@ const CustomerOrderTracker = () => {
         </div>
       </div>
 
-      {/* Bottom action bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-gray-900 text-white rounded-3xl px-6 py-5 flex justify-between items-center shadow-xl">
-            <div>
-              <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-0.5">Session Total</p>
-               <p className="text-2xl font-black">₹{sessionTotal.toLocaleString('en-IN')}</p>
+      {/* Persistent Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-40 bg-gradient-to-t from-black/20 to-transparent pointer-events-none">
+        <div className="max-w-2xl mx-auto w-full pointer-events-auto">
+          <div className={`${darkMode ? 'bg-[#151515] border-white/5 shadow-black/80' : 'bg-gray-900 border-gray-800 shadow-gray-200/50'} border rounded-3xl sm:rounded-[2.5rem] px-4 sm:px-8 py-4 sm:py-6 flex justify-between items-center shadow-2xl transition-all duration-500 min-h-[5.5rem] sm:h-24`}>
+            <div className="flex flex-col">
+              <p className="text-gray-500 text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-0.5 sm:mb-1">Session Value</p>
+               <p className="text-xl sm:text-3xl font-black text-white">₹{sessionTotal.toLocaleString('en-IN')}</p>
             </div>
 
+            <div className="flex gap-2">
             {/* All done - can finish */}
             {allDone && !allReceived && !isPaid && (
               <button
                 onClick={confirming ? undefined : handleFinishOrder}
                 disabled={confirming}
-                className="bg-green-500 hover:bg-green-400 text-white font-black px-5 py-3 rounded-2xl flex items-center gap-2 text-sm cursor-pointer transition disabled:opacity-60"
+                 className="bg-green-500 hover:bg-green-600 text-white font-black px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 text-xs sm:text-sm cursor-pointer transition-all shadow-2xl shadow-green-500/30 disabled:opacity-60"
               >
-                <Receipt size={16} />
-                {confirming ? 'Processing...' : 'Finish & View Bill'}
+                <Receipt className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
+                {confirming ? 'Wait...' : 'Get Bill'}
               </button>
             )}
-
+ 
             {/* Some pending, some served - show both options */}
             {hasServed && hasPending && !isPaid && (
               <button
                 onClick={() => setShowChoiceModal(true)}
-                className="bg-orange-500 hover:bg-orange-400 text-white font-black px-5 py-3 rounded-2xl flex items-center gap-2 text-sm cursor-pointer transition"
+                className="bg-amber-500 hover:bg-amber-600 text-white font-black px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 text-xs sm:text-sm cursor-pointer transition-all shadow-2xl shadow-amber-500/30"
               >
-                <Coffee size={16} /> Order in Progress
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
+                <span>In Kitchen</span>
               </button>
             )}
-
+ 
             {/* Nothing served yet - add more */}
             {!hasServed && !isPaid && (
               <button
                 onClick={() => {
-                  const menuUrl = hotelId ? `/?tableId=${tableId}&hotelId=${hotelId}` : `/?tableId=${tableId}`;
+                  const menuUrl = `/${hotelId}/menu?tableId=${tableId}`;
                   window.location.href = menuUrl;
                 }}
-                className="bg-white text-gray-900 font-black px-5 py-3 rounded-2xl flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 transition"
+                className={`font-black px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 text-xs sm:text-sm cursor-pointer transition-all shadow-2xl ${darkMode ? 'bg-white text-gray-900 hover:bg-gray-200 shadow-white/5' : 'bg-white text-gray-900 hover:bg-gray-100 shadow-gray-100'}`}
               >
-                <Plus size={16} /> Add More
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={3} /> Explore
               </button>
             )}
-
+ 
             {/* Already received, awaiting payment */}
             {allReceived && !isPaid && (
               <button
@@ -364,24 +409,25 @@ const CustomerOrderTracker = () => {
                   const billUrl = `/${hotelId}/bill?tableId=${tableId}`;
                   window.location.href = billUrl;
                 }}
-                className="bg-white text-gray-900 font-black px-5 py-3 rounded-2xl text-sm cursor-pointer hover:bg-gray-100 transition"
+                className={`font-black px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm cursor-pointer transition-all shadow-2xl ${darkMode ? 'bg-white text-gray-900 hover:bg-gray-100 shadow-white/5' : 'bg-white text-gray-900 hover:bg-gray-100 shadow-gray-100'}`}
               >
-                View Bill
+                Pay Bill
               </button>
             )}
-
+ 
             {/* Paid */}
             {isPaid && (
               <button
                 onClick={() => {
-                  const menuUrl = hotelId ? `/?tableId=${tableId}&hotelId=${hotelId}` : `/?tableId=${tableId}`;
-                  window.location.href = menuUrl;
+                   const menuUrl = `/${hotelId}/menu?tableId=${tableId}`;
+                   window.location.href = menuUrl;
                 }}
-                className="bg-green-500 text-white font-black px-5 py-3 rounded-2xl text-sm cursor-pointer hover:bg-green-600 transition"
+                className="bg-emerald-500 text-white font-black px-4 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm cursor-pointer hover:bg-emerald-600 transition-all shadow-2xl shadow-emerald-500/30"
               >
-                New Visit
+                Re-order
               </button>
             )}
+            </div>
           </div>
         </div>
       </div>

@@ -138,16 +138,15 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE TABLE IF NOT EXISTS customers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255),
-    email VARCHAR(255),
-    phone VARCHAR(20),
-    mobileNumber VARCHAR(20),
-    visitCount INT DEFAULT 0,
-    lastVisitedDate DATETIME,
-    lastTableUsed VARCHAR(255),
-    currentOtp VARCHAR(20),
-    otpGeneratedAt DATETIME,
-    createdAt DATETIME,
+    mobile_number VARCHAR(20) NOT NULL,
+    visit_count INT DEFAULT 0,
+    last_visited_date DATETIME,
+    last_table_used VARCHAR(255),
+    current_otp VARCHAR(20),
+    otp_generated_at DATETIME,
+    created_at DATETIME,
     restaurant_id BIGINT,
+    UNIQUE KEY uk_mobile_restaurant (mobile_number, restaurant_id),
     FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
 );
 
@@ -165,11 +164,12 @@ CREATE TABLE IF NOT EXISTS raw_materials (
 -- Daily Usage Logs Table
 CREATE TABLE IF NOT EXISTS daily_usage_logs (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    material_id BIGINT,
-    quantity_used DOUBLE NOT NULL,
-    log_date DATE,
+    material_name VARCHAR(255) NOT NULL,
+    used_quantity DOUBLE NOT NULL,
+    remaining_quantity DOUBLE NOT NULL,
+    unit VARCHAR(50),
+    date DATETIME NOT NULL,
     restaurant_id BIGINT,
-    FOREIGN KEY (material_id) REFERENCES raw_materials(id),
     FOREIGN KEY (restaurant_id) REFERENCES restaurant(id)
 );
 

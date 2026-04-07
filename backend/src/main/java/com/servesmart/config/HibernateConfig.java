@@ -28,10 +28,16 @@ public class HibernateConfig {
     private CurrentTenantIdentifierResolverImpl currentTenantIdentifierResolver;
 
     @Bean
+    @org.springframework.context.annotation.DependsOn("tenantStartupInitializer")
     public LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource) {
         Map<String, Object> properties = new HashMap<>(jpaProperties.getProperties());
         properties.put(Environment.MULTI_TENANT_CONNECTION_PROVIDER, multiTenantConnectionProvider);
         properties.put(Environment.MULTI_TENANT_IDENTIFIER_RESOLVER, currentTenantIdentifierResolver);
+
+        // Explicitly set naming strategy since Spring Boot auto-config doesn't apply
+        // it when a custom EntityManagerFactory bean is defined.
+        properties.put("hibernate.physical_naming_strategy",
+                "org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy");
 
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource);

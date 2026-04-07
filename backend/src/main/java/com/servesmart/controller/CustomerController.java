@@ -23,10 +23,20 @@ public class CustomerController {
     private CustomerService customerService;
 
     @PostMapping("/otp/send")
-    public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> sendOtp(@RequestParam(required = false) Map<String, String> params, @RequestBody(required = false) Map<String, String> body) {
         try {
-            String mobile = request.get("mobileNumber");
-            String name = request.get("name");
+            String mobile = null;
+            String name = null;
+
+            if (body != null) {
+                mobile = body.get("mobileNumber");
+                name = body.get("name");
+            }
+            
+            if ((mobile == null || mobile.isEmpty()) && params != null) {
+                mobile = params.get("mobileNumber");
+                name = params.get("name");
+            }
 
             if (mobile == null || mobile.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Mobile number is required"));

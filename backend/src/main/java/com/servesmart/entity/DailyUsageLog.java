@@ -12,20 +12,20 @@ public class DailyUsageLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "date", nullable = false)
     private LocalDateTime date;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "restaurant_id")
     private Restaurant restaurant;
 
-    @Column(nullable = false)
+    @Column(name = "material_name", nullable = false)
     private String materialName;
 
-    @Column(nullable = false)
+    @Column(name = "used_quantity", nullable = false)
     private Double usedQuantity;
 
-    @Column(nullable = false)
+    @Column(name = "remaining_quantity", nullable = false)
     private Double remainingQuantity;
 
     @Column(nullable = false)
