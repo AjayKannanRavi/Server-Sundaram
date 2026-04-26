@@ -7,8 +7,12 @@ const StaffGuard = ({ children, requiredRole }) => {
     const [isAuthorized, setIsAuthorized] = useState(false);
 
     useEffect(() => {
-        const storageKey = requiredRole === 'OWNER' ? 'owner_session' : requiredRole === 'ADMIN' ? 'admin_session' : 'kitchen_session';
-        const loginPath = requiredRole === 'OWNER' ? '/admin/login' : `/${hotelId}/${requiredRole === 'ADMIN' ? 'admin' : 'kitchen'}/login`;
+        const isOwner = requiredRole === 'OWNER';
+        const isAdmin = requiredRole === 'ADMIN';
+        const isWaiter = requiredRole === 'WAITER';
+
+        const storageKey = isOwner ? 'owner_session' : isAdmin ? 'admin_session' : isWaiter ? 'captain_session' : 'kitchen_session';
+        const loginPath = isOwner ? `/${hotelId}/owner/login` : `/${hotelId}/${isAdmin ? 'admin' : isWaiter ? 'captain' : 'kitchen'}/login`;
         
         const staff = localStorage.getItem(storageKey);
         if (!staff) {
@@ -18,6 +22,14 @@ const StaffGuard = ({ children, requiredRole }) => {
 
         const session = JSON.parse(staff);
         const today = new Date().toISOString().split('T')[0];
+
+        // Reject stale sessions that don't carry JWT anymore.
+        const token = session?.token || session?.accessToken || session?.jwt;
+        if (!token) {
+            localStorage.removeItem(storageKey);
+            navigate(loginPath);
+            return;
+        }
         
         // Check if session is from today
         if (session.date !== today) {

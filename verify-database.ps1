@@ -40,17 +40,17 @@ function Verify-MasterDatabase {
     
     # Check hotels
     Write-Host "`n2. Checking registered hotels..." -ForegroundColor Yellow
-    $hotelCount = Run-MySQLQuery -Database "servesmart_db" -Query "SELECT COUNT(*) as count FROM restaurant;"
+    $hotelCount = Run-MySQLQuery -Database "servesmart" -Query "SELECT COUNT(*) as count FROM restaurant;"
     Write-Host $hotelCount
     
     # List recent hotels
     Write-Host "`n3. Recent hotels (last 24 hours)..." -ForegroundColor Yellow
-    $recentHotels = Run-MySQLQuery -Database "servesmart_db" -Query "SELECT id, name, owner_email, created_at FROM restaurant WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) ORDER BY created_at DESC;"
+    $recentHotels = Run-MySQLQuery -Database "servesmart" -Query "SELECT id, name, owner_email, created_at FROM restaurant WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) ORDER BY created_at DESC;"
     Write-Host $recentHotels
     
     # Check staff accounts
     Write-Host "`n4. Staff accounts summary..." -ForegroundColor Yellow
-    $staffSummary = Run-MySQLQuery -Database "servesmart_db" -Query "SELECT role, COUNT(*) as count FROM staff GROUP BY role;"
+    $staffSummary = Run-MySQLQuery -Database "servesmart" -Query "SELECT role, COUNT(*) as count FROM staff GROUP BY role;"
     Write-Host $staffSummary
 }
 
@@ -72,10 +72,10 @@ function Verify-TenantDatabase {
     Write-Host "`n1. Checking if database exists ($dbName)..." -ForegroundColor Yellow
     $dbExists = Run-MySQLQuery -Query "SHOW DATABASES LIKE '$dbName';"
     if ([string]::IsNullOrEmpty($dbExists)) {
-        Write-Host "   ❌ Database NOT found!" -ForegroundColor Red
+        Write-Host "   âŒ Database NOT found!" -ForegroundColor Red
         return
     }
-    Write-Host "   ✅ Database found!" -ForegroundColor Green
+    Write-Host "   âœ… Database found!" -ForegroundColor Green
     
     # Check tables
     Write-Host "`n2. Database tables..." -ForegroundColor Yellow
@@ -166,15 +166,15 @@ function Export-Data {
     $mysqlCmd += " -D $Database -e `"SELECT * FROM $Table;`""
     
     Invoke-Expression "$mysqlCmd | Out-File -FilePath $OutputFile"
-    Write-Host "✅ Export complete!" -ForegroundColor Green
+    Write-Host "âœ… Export complete!" -ForegroundColor Green
 }
 
 # Main Menu
 function Show-Menu {
     Write-Host "`n" -ForegroundColor Cyan
-    Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║   ServeSmart Database Verification Tool    ║" -ForegroundColor Cyan
-    Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host "â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—" -ForegroundColor Cyan
+    Write-Host "â•‘   serversundaram Database Verification Tool    â•‘" -ForegroundColor Cyan
+    Write-Host "â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•" -ForegroundColor Cyan
     
     Write-Host "`n1. Verify Master Database" -ForegroundColor White
     Write-Host "2. Verify Tenant Database (specific hotel)" -ForegroundColor White
@@ -185,7 +185,7 @@ function Show-Menu {
 }
 
 function Get-CustomQuery {
-    Write-Host "`nEnter database name (servesmart_db or ss_hotel_X): " -NoNewline
+    Write-Host "`nEnter database name (servesmart or ss_hotel_X): " -NoNewline
     $db = Read-Host
     
     Write-Host "Enter your SQL query: " -NoNewline
@@ -215,7 +215,7 @@ while ($continue) {
             Quick-Orders-Check
         }
         "4" {
-            Write-Host "`nDatabase name (servesmart_db or ss_hotel_X): " -NoNewline
+            Write-Host "`nDatabase name (servesmart or ss_hotel_X): " -NoNewline
             $db = Read-Host
             Write-Host "Table name: " -NoNewline
             $table = Read-Host

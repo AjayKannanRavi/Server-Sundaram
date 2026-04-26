@@ -14,7 +14,7 @@ const RedirectLogin = () => {
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
         const hotelId = queryParams.get('hotelId');
-        const tableId = queryParams.get('tableId');
+        const tableId = queryParams.get('tableId') || queryParams.get('tableid');
 
         if (hotelId) {
             // Found hotelId in query params, redirect to proper path
@@ -30,10 +30,10 @@ const RedirectLogin = () => {
     }, [navigate, location]);
 
     return (
-        <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Redirecting to your table...</p>
+        <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.95),transparent_26%),radial-gradient(circle_at_top_right,rgba(224,231,255,0.85),transparent_24%),linear-gradient(180deg,#dbeafe_0%,#e0e7ff_48%,#eff6ff_100%)]">
+            <div className="flex flex-col items-center gap-4 rounded-[2rem] border border-white/70 bg-white/60 px-8 py-10 shadow-[0_30px_90px_rgba(96,130,202,0.12)] backdrop-blur-2xl">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Redirecting to your table...</p>
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 -- ====================================================================
--- ServeSmart Database Quick Verification Queries
+-- serversundaram Database Quick Verification Queries
 -- ====================================================================
 -- Copy and paste sections below into MySQL Workbench or mysql CLI
 -- ====================================================================
@@ -8,11 +8,11 @@
 -- 1. MASTER DATABASE CHECKS
 -- ====================================================================
 
--- Check all databases (should see servesmart_db and ss_hotel_* databases)
+-- Check all databases (should see servesmart and ss_hotel_* databases)
 SHOW DATABASES;
 
 -- Switch to master database
-USE servesmart_db;
+USE servesmart;
 
 -- View all registered hotels
 SELECT 
@@ -261,8 +261,8 @@ SELECT
     min_threshold,
     unit,
     CASE 
-        WHEN quantity <= min_threshold THEN 'LOW STOCK ⚠️'
-        ELSE 'OK ✅'
+        WHEN quantity <= min_threshold THEN 'LOW STOCK âš ï¸'
+        ELSE 'OK âœ…'
     END as status
 FROM raw_material
 ORDER BY quantity ASC;

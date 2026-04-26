@@ -12,6 +12,43 @@ const KitchenDashboard = () => {
   const [activeTab, setActiveTab] = useState('live');
   const [rejectId, setRejectId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [session, setSession] = useState(() => JSON.parse(localStorage.getItem('kitchen_session') || '{}'));
+  const [profilePhoto, setProfilePhoto] = useState('');
+
+  useEffect(() => {
+    setSession(JSON.parse(localStorage.getItem('kitchen_session') || '{}'));
+  }, []);
+
+  useEffect(() => {
+    const key = `staff_ui_prefs_${hotelId || 'global'}_KITCHEN_${session?.username || session?.name || 'user'}`;
+    try {
+      const raw = localStorage.getItem(key);
+      const parsed = raw ? JSON.parse(raw) : null;
+      setProfilePhoto(parsed?.photoUrl || '');
+    } catch (err) {
+      console.error('Failed to load kitchen profile photo', err);
+      setProfilePhoto('');
+    }
+  }, [hotelId, session?.username, session?.name]);
+
+  const handleProfilePhotoChange = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const photoUrl = String(reader.result || '');
+      const key = `staff_ui_prefs_${hotelId || 'global'}_KITCHEN_${session?.username || session?.name || 'user'}`;
+      const existing = (() => {
+        try {
+          return JSON.parse(localStorage.getItem(key) || '{}');
+        } catch {
+          return {};
+        }
+      })();
+      localStorage.setItem(key, JSON.stringify({ ...existing, photoUrl }));
+      setProfilePhoto(photoUrl);
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     if (hotelId) {
@@ -84,9 +121,22 @@ const KitchenDashboard = () => {
               Kitchen Dashboard
             </h1>
             <p className="text-gray-500 font-medium mt-1">
-              Logged in as <span className="font-black text-gray-900">{JSON.parse(localStorage.getItem('kitchen_session') || '{}').name || 'Chef'}</span>
+              Logged in as <span className="font-black text-gray-900">{session?.name || 'Chef'}</span>
             </p>
           </div>
+          <label className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-orange-200 shadow-sm bg-white cursor-pointer flex items-center justify-center text-orange-700 font-black">
+            {profilePhoto ? (
+              <img src={profilePhoto} alt="Kitchen profile" className="w-full h-full object-cover" />
+            ) : (
+              (session?.name || session?.username || 'K').charAt(0)
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleProfilePhotoChange(e.target.files?.[0])}
+            />
+          </label>
           <div className="flex items-center gap-2 ml-auto md:ml-4">
             <button 
               onClick={() => {
@@ -129,7 +179,7 @@ const KitchenDashboard = () => {
           const filtered = orders.filter(order => {
             const isToday = new Date(order.createdAt).toISOString().split('T')[0] === today;
             if (activeTab === 'live') {
-              return order.status !== 'SERVED' && order.status !== 'COMPLETED' && order.status !== 'REJECTED' && order.paymentStatus !== 'PAID';
+              return order.status !== 'PENDING' && order.status !== 'SERVED' && order.status !== 'COMPLETED' && order.status !== 'REJECTED' && order.paymentStatus !== 'PAID';
             } else {
               // History: Served/Completed or Rejected orders from today
               return isToday && (order.status === 'SERVED' || order.status === 'COMPLETED' || order.status === 'REJECTED' || order.paymentStatus === 'PAID');
@@ -212,22 +262,22 @@ const KitchenDashboard = () => {
                     <>
                       <button
                         onClick={() => updateStatus(order.id, 'ACCEPTED')}
-                        className="flex-1 bg-blue-500 text-white font-bold py-3 rounded-xl hover:bg-blue-600 transition flex items-center justify-center gap-2 cursor-pointer"
+                        className="flex-1 bg-blue-500 text-white font-black py-4 rounded-2xl hover:bg-blue-600 transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-100"
                       >
-                        <Check size={18} /> Accept
+                        <Check size={20} /> ACCEPT
                       </button>
                       <button
                         onClick={() => setRejectId(order.id)}
-                        className="flex-1 bg-red-100 text-red-700 font-bold py-3 rounded-xl hover:bg-red-200 transition flex items-center justify-center gap-2 cursor-pointer border-0"
+                        className="flex-1 bg-red-50 text-red-600 font-black py-4 rounded-2xl hover:bg-red-100 transition flex items-center justify-center gap-2 cursor-pointer border-0"
                       >
-                        <X size={18} /> Reject
+                        <X size={20} /> REJECT
                       </button>
                     </>
                   )}
                   {order.status === 'ACCEPTED' && (
                     <button
                       onClick={() => updateStatus(order.id, 'PREPARING')}
-                      className="flex-1 bg-orange-500 text-white font-bold py-3 rounded-xl hover:bg-orange-600 transition cursor-pointer"
+                      className="w-full bg-orange-500 text-white font-black py-5 rounded-2xl hover:bg-orange-600 transition cursor-pointer shadow-lg shadow-orange-100 text-lg uppercase tracking-widest"
                     >
                       Start Preparing
                     </button>
@@ -235,17 +285,17 @@ const KitchenDashboard = () => {
                   {order.status === 'PREPARING' && (
                     <button
                       onClick={() => updateStatus(order.id, 'READY')}
-                      className="flex-1 bg-green-500 text-white font-bold py-3 rounded-xl hover:bg-green-600 transition flex justify-center items-center gap-2 cursor-pointer"
+                      className="w-full bg-green-500 text-white font-black py-5 rounded-2xl hover:bg-green-600 transition flex justify-center items-center gap-3 cursor-pointer shadow-lg shadow-green-100 text-lg uppercase tracking-widest"
                     >
-                      <Check size={18} /> Ready
+                      <Check size={22} className="stroke-[3]" /> ORDER READY
                     </button>
                   )}
                   {order.status === 'READY' && (
                     <button
                       onClick={() => updateStatus(order.id, 'SERVED')}
-                      className="flex-1 bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition flex justify-center items-center gap-2 cursor-pointer"
+                      className="w-full bg-gray-900 text-white font-black py-5 rounded-2xl hover:bg-black transition flex justify-center items-center gap-3 cursor-pointer shadow-xl text-lg uppercase tracking-widest"
                     >
-                      <Coffee size={18} /> Mark Served
+                      <Coffee size={22} /> MARK AS SERVED
                     </button>
                   )}
                 </div>

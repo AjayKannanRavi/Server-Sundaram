@@ -134,16 +134,41 @@ const CustomerOrderTracker = () => {
     localStorage.setItem('darkMode', darkMode);
   }, [darkMode]);
 
-  // Fetch session orders on mount
+  const [restaurant, setRestaurant] = useState({ taxPercentage: 0, serviceCharge: 0 });
+
+  // Fetch session orders and restaurant details on mount
   useEffect(() => {
     if (!tableId) return;
+    
+    // Fetch orders
     axios.get(`${API_BASE_URL}/orders/session?tableId=${tableId}`, {
       headers: { 'X-Hotel-Id': hotelId }
     })
       .then(res => setSessionOrders(res.data))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
+
+    // Fetch restaurant
+    axios.get(`${API_BASE_URL}/restaurant`, {
+      headers: { 'X-Hotel-Id': hotelId }
+    })
+      .then(res => setRestaurant(res.data))
+      .catch(err => console.error('Error fetching restaurant', err));
   }, [tableId, hotelId]);
+
+  // Initial check for payment status after orders load
+  useEffect(() => {
+    if (sessionOrders.length > 0 && sessionOrders.every(o => o.paymentStatus === 'PAID')) {
+       // if already paid when page loads, don't auto-redirect immediately to give time to see 'paid' badge
+       // but we'll set confirming to true and trigger after a short delay
+       setConfirming(true);
+       const timer = setTimeout(() => {
+         const sessionId = sessionOrders[0]?.sessionId || '';
+         window.location.href = `/${hotelId}/review?tableId=${tableId}&sessionId=${sessionId}`;
+       }, 3000);
+       return () => clearTimeout(timer);
+    }
+  }, [sessionOrders.length]);
 
   // WebSocket live updates
   useEffect(() => {
@@ -188,7 +213,11 @@ const CustomerOrderTracker = () => {
   }, [tableId]);
 
   // Derived state
-  const sessionTotal  = sessionOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+  const subtotal      = sessionOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+  const taxAmount     = subtotal * (parseFloat(restaurant.taxPercentage || 0) / 100);
+  const serviceChargeAmount = subtotal * (parseFloat(restaurant.serviceCharge || 0) / 100);
+  const grandTotal    = subtotal + taxAmount + serviceChargeAmount;
+
   const isPaid        = sessionOrders.length > 0 && sessionOrders.every(o => o.paymentStatus === 'PAID');
   const hasServed     = sessionOrders.some(o => o.status === 'SERVED');
   const allDone       = sessionOrders.length > 0 && sessionOrders.every(o => ['SERVED','COMPLETED','REJECTED'].includes(o.status));
@@ -214,7 +243,7 @@ const CustomerOrderTracker = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold">Loading session...</div>;
+    return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold italic tracking-widest animate-pulse">Synchronizing session...</div>;
   }
 
   if (sessionOrders.length === 0) {
@@ -314,11 +343,47 @@ const CustomerOrderTracker = () => {
               <div className="p-8">
                 {/* Status bar */}
                 {order.status === 'REJECTED' ? (
-                  <div className={`p-5 rounded-[1.5rem] font-bold italic text-xs mb-6 border ${darkMode ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-red-50 text-red-800 border-red-100'}`}>
-                    Rejected: {order.rejectionReason || 'Kitchen could not process this order'}
+                  <div className={`p-6 rounded-[2rem] mb-8 border animate-in zoom-in duration-500 ${darkMode ? 'bg-red-500/5 border-red-500/20' : 'bg-red-50 border-red-100'}`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
+                        <X size={20} className="text-white" strokeWidth={3} />
+                      </div>
+                      <div>
+                        <p className={`font-black text-sm uppercase tracking-widest ${darkMode ? 'text-red-400' : 'text-red-600'}`}>Order Rejected</p>
+                        <p className={`text-[10px] font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>We're sorry for the inconvenience</p>
+                      </div>
+                    </div>
+                    
+                    <p className={`text-sm font-bold italic leading-relaxed mb-6 ${darkMode ? 'text-gray-300' : 'text-red-800'}`}>
+                      "{order.rejectionReason || 'The kitchen is currently unable to process this order.'}"
+                    </p>
+
+                    <button
+                      onClick={() => navigate(`/${hotelId}/menu?tableId=${tableId}`)}
+                      className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer ${
+                        darkMode ? 'bg-white text-gray-900 hover:bg-gray-200' : 'bg-gray-900 text-white hover:bg-black'
+                      }`}
+                    >
+                      <Plus size={16} strokeWidth={3} /> Select Another Food
+                    </button>
                   </div>
                 ) : (
                   <StatusBar status={order.status} darkMode={darkMode} />
+                )}
+
+                {order.status === 'PENDING' && order.paymentStatus !== 'PAID' && (
+                  <div className={`rounded-2xl border p-4 mb-6 flex items-center justify-between gap-3 ${darkMode ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-100'}`}>
+                    <div>
+                      <p className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-amber-400' : 'text-amber-700'}`}>Editable Now</p>
+                      <p className={`text-xs font-semibold ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>Captain has received this order. You can still edit it.</p>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/${hotelId}/menu?tableId=${tableId}&editOrderId=${order.id}`)}
+                      className="px-4 py-2 rounded-xl bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition cursor-pointer"
+                    >
+                      Edit Order
+                    </button>
+                  </div>
                 )}
 
                 {/* "Served – choose action" prompt per card if only this one is served */}
@@ -346,7 +411,7 @@ const CustomerOrderTracker = () => {
                     </div>
                   ))}
                   <div className={`flex justify-between items-center pt-5 border-t ${darkMode ? 'border-white/5' : 'border-gray-50'}`}>
-                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Subtotal Amount</span>
+                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Order Subtotal</span>
                     <span className={`font-black text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>₹{order.totalAmount.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
@@ -361,8 +426,11 @@ const CustomerOrderTracker = () => {
         <div className="max-w-2xl mx-auto w-full pointer-events-auto">
           <div className={`${darkMode ? 'bg-[#151515] border-white/5 shadow-black/80' : 'bg-gray-900 border-gray-800 shadow-gray-200/50'} border rounded-3xl sm:rounded-[2.5rem] px-4 sm:px-8 py-4 sm:py-6 flex justify-between items-center shadow-2xl transition-all duration-500 min-h-[5.5rem] sm:h-24`}>
             <div className="flex flex-col">
-              <p className="text-gray-500 text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-0.5 sm:mb-1">Session Value</p>
-               <p className="text-xl sm:text-3xl font-black text-white">₹{sessionTotal.toLocaleString('en-IN')}</p>
+              <p className="text-gray-500 text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-0.5 sm:mb-1">Grand Total (Incl. Taxes)</p>
+               <p className="text-xl sm:text-3xl font-black text-white">₹{grandTotal.toLocaleString('en-IN')}</p>
+               {(taxAmount > 0 || serviceChargeAmount > 0) && (
+                 <p className="text-[7px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">₹{subtotal.toFixed(0)} + ₹{(taxAmount + serviceChargeAmount).toFixed(0)} Charges</p>
+               )}
             </div>
 
             <div className="flex gap-2">

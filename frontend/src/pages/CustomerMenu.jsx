@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { API_BASE_URL } from '../api/api';
+import { API_BASE_URL, getFullImageUrl } from '../api/api';
 import {
   ShoppingCart, Search, X, Plus, Minus, Star, ChefHat,
   Leaf, Flame, Clock, ChevronDown, CheckCircle, SlidersHorizontal,
-  ArrowLeft, Sparkles
+  ArrowLeft, Sparkles, Sun, Moon, Smartphone
 } from 'lucide-react';
+
+const formatINR = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
 // (categoryEmoji utility removed)
 
-// ─── Food image fallback using Unsplash keywords ────────────────────────────
+// â”€â”€â”€ Food image fallback using Unsplash keywords â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const getFoodImage = (item) => {
-  if (item.imageUrl) return item.imageUrl;
+  if (item.imageUrl) return getFullImageUrl(item.imageUrl);
   const name = item.name.toLowerCase();
   const keywordMap = [
     { keywords: ['pizza'], url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80' },
@@ -42,7 +44,14 @@ const getFoodImage = (item) => {
   return '/food_placeholder.png';
 };
 
-// ─── Cart Item Row ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Deterministic Rating Algorithm â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const getItemRating = (id) => {
+  // Provides a consistent rating between 4.1 and 4.9 based on ID
+  const rating = 4.1 + ((id * 7) % 9) * 0.1;
+  return rating.toFixed(1);
+};
+
+// â”€â”€â”€ Cart Item Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CartItem = ({ item, onIncrease, onDecrease, onRemove, darkMode }) => (
   <div className={`flex items-start gap-4 py-4 border-b ${darkMode ? 'border-white/5' : 'border-gray-50'} last:border-0`}>
     <div className="relative">
@@ -59,11 +68,11 @@ const CartItem = ({ item, onIncrease, onDecrease, onRemove, darkMode }) => (
           {item.name}
         </p>
         <p className={`font-black text-sm ml-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          ₹{(item.price * item.quantity).toLocaleString('en-IN')}
+          {formatINR(item.price * item.quantity)}
         </p>
       </div>
       <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-gray-500' : 'text-gray-400'} mb-3`}>
-        ₹{item.price.toLocaleString('en-IN')} / ea
+        {formatINR(item.price)} / ea
       </p>
       
       <div className="flex items-center justify-between">
@@ -95,94 +104,119 @@ const CartItem = ({ item, onIncrease, onDecrease, onRemove, darkMode }) => (
   </div>
 );
 
-// ─── Menu Item Card ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Menu Item Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const MenuCard = ({ item, cartQty, onAdd, onIncrease, onDecrease, onShowDetails }) => {
   const [imgLoaded, setImgLoaded] = useState(false);
-  const isBestSeller = item.price > 300 || item.name.toLowerCase().includes('special'); 
+  
+  // Badge logic
+  const badges = [];
+  // Food Mark (Veg/Non-Veg)
+  badges.push({ 
+    isFoodMark: true, 
+    isVeg: item.isVeg, 
+    borderColor: item.isVeg ? 'border-emerald-500' : 'border-rose-500',
+    dotColor: item.isVeg ? 'bg-emerald-500' : 'bg-rose-500'
+  });
+  
+  if (item.isBestSeller) badges.push({ text: 'Best Seller', color: 'bg-amber-400 text-gray-900' });
+  if (item.isChefSpecial) badges.push({ text: 'Chef Special', color: 'bg-rose-500' });
 
   return (
     <div 
       onClick={() => onShowDetails(item)}
-      className="group relative rounded-[2.5rem] overflow-hidden shadow-2xl transition-all duration-500 hover:scale-[1.03] active:scale-95 h-[230px] sm:h-[280px] bg-[#0D0D0D] border border-white/5 cursor-pointer"
+      className="group relative rounded-[2.5rem] overflow-hidden shadow-2xl transition-all duration-500 hover:scale-[1.02] active:scale-95 flex flex-col h-[280px] sm:h-[340px] bg-[#121212] border border-white/5 cursor-pointer"
     >
-      {/* Background Image */}
-      {!imgLoaded && (
-        <div className="absolute inset-0 bg-gray-900 animate-pulse z-0" />
-      )}
-      <img
-        src={getFoodImage(item)}
-        alt={item.name}
-        className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 group-hover:scale-110 group-hover:rotate-1 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
-        onLoad={() => setImgLoaded(true)}
-        onError={e => { e.target.src = '/food_placeholder.png'; setImgLoaded(true); }}
-        loading="lazy"
-      />
-      
-      {/* Immersive Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-95 group-hover:opacity-100 transition-opacity duration-500" />
-
-      {/* "Best Seller" Badge */}
-      {isBestSeller && (
-        <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-amber-400 text-gray-900 font-black text-[9px] uppercase tracking-widest px-3.5 py-1.5 rounded-full shadow-xl transform -rotate-2">
-          <Star size={11} fill="currentColor" /> Best Seller
+      {/* Top Image Section */}
+      <div className="relative h-1/2 sm:h-[60%] overflow-hidden">
+        {!imgLoaded && (
+          <div className="absolute inset-0 bg-gray-900 animate-pulse z-0" />
+        )}
+        <img
+          src={getFoodImage(item)}
+          alt={item.name}
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 group-hover:scale-110 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setImgLoaded(true)}
+          onError={e => { e.target.src = '/food_placeholder.png'; setImgLoaded(true); }}
+          loading="lazy"
+        />
+        
+        {/* Badges Overlay */}
+        <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 items-end">
+          {badges.map((badge, idx) => (
+            badge.isFoodMark ? (
+              <div 
+                key={idx}
+                className={`w-6 h-6 border-2 ${badge.borderColor} bg-white/90 backdrop-blur-sm flex items-center justify-center rounded-md shadow-xl`}
+              >
+                <div className={`w-2.5 h-2.5 rounded-full ${badge.dotColor}`} />
+              </div>
+            ) : (
+              <div 
+                key={idx}
+                className={`${badge.color} px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-2xl backdrop-blur-md text-white`}
+              >
+                {badge.text}
+              </div>
+            )
+          ))}
         </div>
-      )}
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-transparent to-transparent opacity-60" />
+      </div>
 
-      {/* Content Area */}
-      <div className="absolute inset-0 p-5 sm:p-7 flex flex-col justify-end z-10">
-        <div className="transform transition-all duration-500 group-hover:-translate-y-2">
-          <h3 className="text-white font-serif italic text-lg sm:text-2xl leading-tight mb-1">
+      {/* Content Section */}
+      <div className="p-5 sm:p-7 flex-1 flex flex-col">
+        <div className="flex justify-between items-start gap-3 mb-2">
+          <h3 className="text-white font-serif italic text-base sm:text-xl leading-tight line-clamp-1">
             {item.name}
           </h3>
-          <p className="text-white/60 text-[10px] sm:text-[11px] font-medium italic line-clamp-1 mb-3">
-            {item.description || "Freshly prepared with premium ingredients."}
-          </p>
-          <div className="flex items-center justify-between gap-2.5 mb-4">
-             <div className="flex items-center gap-2">
-                <span className="text-amber-400 font-black text-sm sm:text-base">₹{item.price.toLocaleString('en-IN')}</span>
-                <span className="w-1 h-1 bg-white/30 rounded-full" />
-                <div className="flex items-center gap-1 text-amber-400">
-                   <Star size={10} fill="currentColor" />
-                   <span className="text-white/70 font-black text-[10px] uppercase tracking-tighter">4.8</span>
-                </div>
-             </div>
-             <span className="text-white/50 font-bold text-[10px] sm:text-[11px] uppercase tracking-widest italic">Gourmet</span>
-          </div>
+          <span className="text-amber-500 font-black text-sm sm:text-lg flex-shrink-0">
+            {formatINR(item.price)}
+          </span>
         </div>
 
-        {/* Action Row */}
-        <div className="transform transition-all duration-500 opacity-90 group-hover:opacity-100">
-          {cartQty === 0 ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); onAdd(item); }}
-              className="w-full bg-white hover:bg-amber-400 active:bg-amber-500 text-gray-900 font-black text-[10px] sm:text-xs py-3.5 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 shadow-2xl active:scale-95 cursor-pointer"
-            >
-              <Plus size={16} strokeWidth={3} /> Add to Cart
-            </button>
-          ) : (
-            <div className="flex items-center bg-white/15 backdrop-blur-xl rounded-2xl p-1 gap-1 border border-white/25">
-              <button 
-                onClick={(e) => { e.stopPropagation(); onDecrease(item.id); }} 
-                className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white/10 hover:bg-red-500/80 flex items-center justify-center transition active:scale-90 cursor-pointer"
-              >
-                <Minus size={16} className="text-white" strokeWidth={3} />
-              </button>
-              <span className="font-black text-white text-sm sm:text-base w-9 sm:w-11 text-center">{cartQty}</span>
-              <button 
-                onClick={(e) => { e.stopPropagation(); onIncrease(item.id); }} 
-                className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white hover:bg-amber-400 flex items-center justify-center transition active:scale-90 cursor-pointer"
-              >
-                <Plus size={16} className="text-gray-900" strokeWidth={3} />
-              </button>
-            </div>
-          )}
+        <p className="text-white/40 text-[10px] sm:text-[11px] font-medium leading-relaxed line-clamp-2 mb-4">
+          {item.description || "Indulge in our exquisite " + item.name + ", prepared with the finest ingredients and culinary passion."}
+        </p>
+
+        <div className="mt-auto flex items-center justify-between">
+           <div className="flex items-center gap-1.5 text-white/30">
+              <Star size={10} fill="currentColor" className="text-amber-500/50" />
+              <span className="text-[10px] font-black tracking-tighter">{getItemRating(item.id)}</span>
+           </div>
+           
+           {/* Add/Quantity Control Control */}
+           {cartQty === 0 ? (
+             <button
+               onClick={(e) => { e.stopPropagation(); onAdd(item); }}
+               className="w-10 h-10 bg-white hover:bg-amber-400 text-gray-900 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-xl active:scale-90"
+             >
+               <Plus size={18} strokeWidth={3} />
+             </button>
+           ) : (
+             <div className="flex items-center bg-white/5 rounded-xl p-1 gap-2 border border-white/10">
+               <button 
+                 onClick={(e) => { e.stopPropagation(); onDecrease(item.id); }} 
+                 className="w-7 h-7 rounded-lg hover:bg-red-500/20 text-white/50 hover:text-red-500 flex items-center justify-center transition"
+               >
+                 <Minus size={14} strokeWidth={3} />
+               </button>
+               <span className="font-black text-white text-xs w-5 text-center">{cartQty}</span>
+               <button 
+                 onClick={(e) => { e.stopPropagation(); onIncrease(item.id); }} 
+                 className="w-7 h-7 rounded-lg bg-white hover:bg-amber-400 text-gray-900 flex items-center justify-center transition"
+               >
+                 <Plus size={14} strokeWidth={3} />
+               </button>
+             </div>
+           )}
         </div>
       </div>
     </div>
   );
 };
 
-// ─── Food Details Modal [NEW] ─────────────────────────────────────────────
+// â”€â”€â”€ Food Details Modal [NEW] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ItemDetailModal = ({ item, onClose, darkMode }) => {
   if (!item) return null;
   
@@ -204,9 +238,12 @@ const ItemDetailModal = ({ item, onClose, darkMode }) => {
           <div className="absolute bottom-6 left-6 right-6">
              <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center gap-0.5 text-amber-400">
-                   {[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < 4 ? "currentColor" : "none"} />)}
+                   {[...Array(5)].map((_, i) => {
+                     const rating = parseFloat(getItemRating(item.id));
+                     return <Star key={i} size={14} fill={i < Math.floor(rating) ? "currentColor" : "none"} />;
+                   })}
                 </div>
-                <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest">(4.8 / 5.0)</span>
+                <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest">({getItemRating(item.id)} / 5.0)</span>
              </div>
              <h2 className="text-2xl sm:text-4xl font-serif italic text-white leading-tight">{item.name}</h2>
           </div>
@@ -216,10 +253,15 @@ const ItemDetailModal = ({ item, onClose, darkMode }) => {
           <div className="flex justify-between items-center mb-6">
             <div className="flex flex-col">
                <span className={`${darkMode ? 'text-gray-500' : 'text-gray-400'} text-[10px] font-black uppercase tracking-widest mb-1`}>Premium Dish</span>
-               <span className="text-amber-500 font-black text-2xl sm:text-3xl">₹{item.price.toLocaleString('en-IN')}</span>
+               <span className="text-amber-500 font-black text-2xl sm:text-3xl">{formatINR(item.price)}</span>
             </div>
-            <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 ${darkMode ? 'border-amber-500/30 text-amber-500' : 'border-amber-500/20 text-amber-600'}`}>
-               Chef Special
+            <div className="flex gap-2">
+              <div className={`w-10 h-10 border-2 ${item.isVeg ? 'border-emerald-500' : 'border-rose-500'} bg-transparent flex items-center justify-center rounded-xl shadow-lg`}>
+                <div className={`w-4 h-4 rounded-full ${item.isVeg ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+              </div>
+              <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 flex items-center ${darkMode ? 'border-amber-500/30 text-amber-500' : 'border-amber-500/20 text-amber-600'}`}>
+                 Chef Special
+              </div>
             </div>
           </div>
 
@@ -245,8 +287,8 @@ const ItemDetailModal = ({ item, onClose, darkMode }) => {
   );
 };
 
-// ─── Cart Panel (slide-up) ────────────────────────────────────────────────────
-const CartPanel = ({ cart, total, onClose, onIncrease, onDecrease, onRemove, onPlaceOrder, placing, darkMode }) => {
+// â”€â”€â”€ Cart Panel (slide-up) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const CartPanel = ({ cart, total, onClose, onIncrease, onDecrease, onRemove, onPlaceOrder, placing, darkMode, restaurant }) => {
   const itemCount = cart.reduce((s, i) => s + i.quantity, 0);
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center px-4 sm:px-0" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
@@ -292,27 +334,51 @@ const CartPanel = ({ cart, total, onClose, onIncrease, onDecrease, onRemove, onP
         {/* Footer */}
         {cart.length > 0 && (
           <div className={`${darkMode ? 'bg-[#0F0F0F]' : 'bg-white'} p-6 border-t ${darkMode ? 'border-white/5' : 'border-gray-50'}`}>
-            <div className="flex justify-between items-center mb-5">
-              <div className="flex flex-col">
-                 <span className={`text-[9px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Subtotal Amount</span>
-                 <span className={`font-black text-2xl ${darkMode ? 'text-white' : 'text-gray-900'}`}>₹{total.toLocaleString('en-IN')}</span>
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between items-center text-xs">
+                <span className={`${darkMode ? 'text-gray-500' : 'text-gray-400'} font-bold uppercase tracking-widest`}>Items Subtotal</span>
+                <span className={`font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formatINR(total)}</span>
               </div>
-              <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${darkMode ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600'}`}>
-                 Pay in Kitchen
+              
+              {restaurant?.taxPercentage > 0 && (
+                <div className="flex justify-between items-center text-xs">
+                  <span className={`${darkMode ? 'text-gray-500' : 'text-gray-400'} font-bold uppercase tracking-widest`}>GST ({restaurant.taxPercentage}%)</span>
+                  <span className={`font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formatINR(total * restaurant.taxPercentage / 100)}</span>
+                </div>
+              )}
+
+              {restaurant?.serviceCharge > 0 && (
+                <div className="flex justify-between items-center text-xs">
+                  <span className={`${darkMode ? 'text-gray-500' : 'text-gray-400'} font-bold uppercase tracking-widest`}>Service Charge ({restaurant.serviceCharge}%)</span>
+                  <span className={`font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{formatINR(total * restaurant.serviceCharge / 100)}</span>
+                </div>
+              )}
+              
+              <div className={`pt-4 border-t ${darkMode ? 'border-white/5' : 'border-gray-50'} flex justify-between items-center`}>
+                <div className="flex flex-col">
+                   <span className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-amber-500' : 'text-amber-600'}`}>Total Payable</span>
+                   <span className={`font-black text-3xl ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                     {formatINR(total + (total * (restaurant?.taxPercentage || 0) / 100) + (total * (restaurant?.serviceCharge || 0) / 100))}
+                   </span>
+                </div>
+                <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${darkMode ? 'bg-white/5 text-gray-500 border border-white/5' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
+                   Next Step: Confirm
+                </div>
               </div>
             </div>
+
             <button
               onClick={onPlaceOrder}
               disabled={placing}
-              className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:opacity-60 text-white font-black py-3.5 rounded-2xl text-base transition-all cursor-pointer shadow-2xl shadow-amber-500/30 flex items-center justify-center gap-3"
+              className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:opacity-60 text-white font-black py-4 rounded-2xl text-base transition-all cursor-pointer shadow-2xl shadow-amber-500/30 flex items-center justify-center gap-3"
             >
               {placing ? (
                 <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Placing...</>
               ) : (
-                <><CheckCircle size={20} className="stroke-[3]" /> Place Order · ₹{total.toLocaleString('en-IN')}</>
+                <><CheckCircle size={20} className="stroke-[3]" /> Confirm</>
               )}
             </button>
-            <p className={`text-center text-[9px] font-bold mt-4 tracking-wide ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Your delectable order will be served shortly</p>
+            <p className={`text-center text-[9px] font-bold mt-4 tracking-wide ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Pay directly at the counter after your meal</p>
           </div>
         )}
       </div>
@@ -320,7 +386,7 @@ const CartPanel = ({ cart, total, onClose, onIncrease, onDecrease, onRemove, onP
   );
 };
 
-// ─── Confirmation Modal ───────────────────────────────────────────────────────
+// â”€â”€â”€ Confirmation Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ConfirmModal = ({ title, message, onConfirm, onCancel, confirmText = 'Confirm', confirmColor = 'bg-red-500' }) => (
   <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
     <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
@@ -334,11 +400,12 @@ const ConfirmModal = ({ title, message, onConfirm, onCancel, confirmText = 'Conf
   </div>
 );
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CustomerMenu = () => {
   const { hotelId: urlHotelId } = useParams();
   const [searchParams] = useSearchParams();
   const tableId = searchParams.get('tableId');
+  const editOrderId = searchParams.get('editOrderId');
   const navigate = useNavigate();
   const hotelId = urlHotelId; // Consistency
 
@@ -358,7 +425,8 @@ const CustomerMenu = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const [customer, setCustomer] = useState(null);
-  const [restaurantName, setRestaurantName] = useState("Loading...");
+  const [restaurant, setRestaurant] = useState(null);
+  const [editingOrder, setEditingOrder] = useState(null);
   const searchRef = useRef(null);
 
   useEffect(() => {
@@ -366,7 +434,10 @@ const CustomerMenu = () => {
   }, [darkMode]);
 
   useEffect(() => {
-    if (!tableId) return;
+    if (!tableId) {
+      navigate(`/${hotelId}/login`, { replace: true });
+      return;
+    }
     const customerData = localStorage.getItem('customer');
     const today = new Date().toISOString().split('T')[0];
     
@@ -392,7 +463,7 @@ const CustomerMenu = () => {
       const loginUrl = `/${hotelId}/login?tableId=${tableId}`;
       navigate(loginUrl);
     }
-  }, [tableId, navigate]);
+  }, [tableId, navigate, hotelId]);
 
   useEffect(() => { if (!tableId) return; fetchMenu(); }, [tableId]);
 
@@ -402,13 +473,50 @@ const CustomerMenu = () => {
       const [catRes, itemRes, restRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/menu/categories`, { headers }),
         axios.get(`${API_BASE_URL}/menu`, { headers }),
-        axios.get(`${API_BASE_URL}/restaurant`, { headers }).catch(() => ({ data: { name: "ServeSmart Restaurant" } }))
+        axios.get(`${API_BASE_URL}/restaurant`, { headers }).catch(() => ({ data: { name: "serversundaram Restaurant" } }))
       ]);
       setCategories(catRes.data);
       setMenuItems(itemRes.data.filter(i => i.available));
-      setRestaurantName(restRes.data?.name || "ServeSmart Restaurant");
+      setRestaurant(restRes.data);
     } catch (err) { console.error('Error fetching menu', err); }
   };
+
+  useEffect(() => {
+    if (!editOrderId || !tableId) {
+      setEditingOrder(null);
+      return;
+    }
+
+    const headers = { 'X-Hotel-Id': hotelId || customer?.hotelId };
+    axios.get(`${API_BASE_URL}/orders/${editOrderId}`, { headers })
+      .then(res => {
+        const order = res.data;
+        const isEditable =
+          order?.status === 'PENDING' &&
+          order?.paymentStatus !== 'PAID' &&
+          String(order?.restaurantTable?.tableNumber) === String(tableId);
+
+        if (!isEditable) {
+          alert('This order can no longer be edited.');
+          setEditingOrder(null);
+          return;
+        }
+
+        const seededCart = (order.items || []).map(item => ({
+          ...item.menuItem,
+          quantity: item.quantity,
+          price: item.price
+        }));
+
+        setEditingOrder(order);
+        setCart(seededCart);
+      })
+      .catch(err => {
+        console.error('Failed to load order for editing', err);
+        alert('Unable to load this order for editing.');
+        setEditingOrder(null);
+      });
+  }, [editOrderId, tableId, hotelId, customer?.hotelId]);
 
   // Cart helpers
   const addToCart = useCallback((item) => {
@@ -439,23 +547,29 @@ const CustomerMenu = () => {
     if (cart.length === 0 || placing) return;
     setPlacing(true);
     try {
-      const res = await axios.post(`${API_BASE_URL}/orders`, {
-        tableId: parseInt(tableId),
-        customerName: customer?.name,
-        customerPhone: customer?.mobileNumber,
-        items: cart.map(i => ({ menuItemId: i.id, quantity: i.quantity }))
-      }, {
-        headers: {
-          'X-Hotel-Id': hotelId || customer?.hotelId
-        }
-      });
+      const headers = {
+        'X-Hotel-Id': hotelId || customer?.hotelId
+      };
+      const itemPayload = cart.map(i => ({ menuItemId: i.id, quantity: i.quantity }));
+
+      const res = editingOrder
+        ? await axios.put(`${API_BASE_URL}/orders/${editingOrder.id}/items`, itemPayload, { headers })
+        : await axios.post(`${API_BASE_URL}/orders`, {
+            tableId: parseInt(tableId),
+            customerName: customer?.name,
+            customerPhone: customer?.mobileNumber,
+            items: itemPayload
+          }, { headers });
+
       setCart([]);
+      setEditingOrder(null);
       setShowCart(false);
       const trackerUrl = `/${hotelId}/tracker?orderId=${res.data.id}&tableId=${tableId}`;
       navigate(trackerUrl);
     } catch (err) {
       console.error('Error placing order', err);
-      alert('Failed to place order. Please try again.');
+      const msg = err?.response?.data?.error || (editingOrder ? 'Failed to update order. Please try again.' : 'Failed to place order. Please try again.');
+      alert(msg);
     } finally {
       setPlacing(false);
     }
@@ -482,7 +596,9 @@ const CustomerMenu = () => {
   if (!tableId) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-8 gap-6">
-        <div className="text-5xl">📱</div>
+        <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
+          <Smartphone size={34} strokeWidth={2.2} />
+        </div>
         <h1 className="text-2xl font-black text-gray-900 text-center">Invalid Table</h1>
         <p className="text-gray-500 text-center font-medium">Please scan the QR code on your table to access the menu.</p>
       </div>
@@ -491,7 +607,7 @@ const CustomerMenu = () => {
 
   return (
     <div className={`min-h-screen transition-colors ${darkMode ? 'bg-[#0D0D0D] text-white' : 'bg-gray-50'}`}>
-      {/* ── Hero Header ─────────────────────────────────────── */}
+      {/* â”€â”€ Hero Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className={`relative ${darkMode ? 'bg-[#0D0D0D]' : 'bg-white'} border-b ${darkMode ? 'border-white/5' : 'border-gray-100'} sticky top-0 z-40 shadow-sm transition-all duration-300 min-h-20 flex items-center py-4`}>
         <div className="px-6 w-full flex flex-wrap items-center justify-between gap-y-4">
           <div className="flex items-center gap-4 min-w-[200px]">
@@ -500,7 +616,7 @@ const CustomerMenu = () => {
                </div>
                <div className="flex flex-col">
                   <h1 className={`font-serif italic text-lg sm:text-2xl ${darkMode ? 'text-amber-400' : 'text-gray-900'} leading-[1.1] mb-1`}>
-                     {restaurantName}
+                     {restaurant?.name || "Loading..."}
                   </h1>
                   <div className="flex items-center gap-2.5">
                      <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg ${darkMode ? 'bg-white/5 text-gray-500' : 'bg-gray-100 text-gray-400'} text-[9px] font-black uppercase tracking-widest`}>
@@ -524,9 +640,11 @@ const CustomerMenu = () => {
             {/* Dark mode */}
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition text-sm ${darkMode ? 'bg-yellow-400 text-gray-900' : 'bg-gray-800 text-white'}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition border ${darkMode ? 'bg-amber-300 text-gray-900 border-amber-200 shadow-md shadow-amber-400/25' : 'bg-gray-900 text-white border-gray-700 shadow-md shadow-gray-900/30'}`}
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {darkMode ? '☀️' : '🌙'}
+              {darkMode ? <Sun size={16} strokeWidth={2.5} /> : <Moon size={16} strokeWidth={2.5} />}
             </button>
 
             {/* Cart */}
@@ -564,7 +682,14 @@ const CustomerMenu = () => {
         )}
       </div>
 
-      {/* ── Hero Banner ─────────────────────────────────────── */}
+      {/* â”€â”€ Hero Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {editingOrder && (
+        <div className="mx-4 mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-[11px] font-black uppercase tracking-widest text-amber-700">Editing Order #{editingOrder.id}</p>
+          <p className="text-xs font-semibold text-amber-800 mt-1">You can update items while this order is still waiting with captain.</p>
+        </div>
+      )}
+
       {!search && activeCategory === 'all' && (
         <div className="relative h-64 sm:h-80 overflow-hidden mx-4 my-6 rounded-[2.5rem] shadow-2xl shadow-black/20 group">
           <img src="/food_hero_banner.png" alt="Menu" className="w-full h-full object-cover transform scale-105 transition-transform duration-1000 group-hover:scale-110" />
@@ -579,7 +704,7 @@ const CustomerMenu = () => {
         </div>
       )}
 
-      {/* ── Category Filter ──────────────────────────────────── */}
+      {/* â”€â”€ Category Filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className={`${darkMode ? 'bg-[#0D0D0D]/90' : 'bg-white/90'} backdrop-blur-md border-b ${darkMode ? 'border-gray-800' : 'border-gray-100'} sticky top-16 z-20 shadow-sm transition-all`}>
         <div className="flex gap-4 px-4 py-4 overflow-x-auto no-scrollbar md:justify-center">
           <button
@@ -606,7 +731,7 @@ const CustomerMenu = () => {
         </div>
       </div>
 
-      {/* ── Sort + Results bar ───────────────────────────────── */}
+      {/* â”€â”€ Sort + Results bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className={`px-4 py-2.5 flex justify-between items-center ${darkMode ? 'bg-[#0D0D0D]' : 'bg-white'} border-b ${darkMode ? 'border-gray-800' : 'border-gray-50'}`}>
         <p className={`text-xs font-bold ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>
           {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
@@ -623,10 +748,10 @@ const CustomerMenu = () => {
           {showSortMenu && (
             <div className={`absolute right-0 top-9 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl border shadow-xl z-20 overflow-hidden min-w-[150px]`}>
               {[
-                { value: 'default', label: '✨ Featured' },
-                { value: 'price-asc', label: '💰 Price: Low to High' },
-                { value: 'price-desc', label: '💎 Price: High to Low' },
-                { value: 'name', label: '🔤 Name (A-Z)' },
+                { value: 'default', label: 'Featured' },
+                { value: 'price-asc', label: 'Price: Low to High' },
+                { value: 'price-desc', label: 'Price: High to Low' },
+                { value: 'name', label: 'Name (A-Z)' },
               ].map(opt => (
                 <button
                   key={opt.value}
@@ -644,11 +769,13 @@ const CustomerMenu = () => {
         </div>
       </div>
 
-      {/* ── Menu Grid ────────────────────────────────────────── */}
+      {/* â”€â”€ Menu Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <main className="p-4 sm:p-8 pb-32">
         {filteredItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="text-5xl">🔍</div>
+            <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
+              <Search size={30} strokeWidth={2.2} />
+            </div>
             <div className="text-center">
               <p className={`font-black text-lg ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>No items found</p>
               <p className={`text-sm font-medium mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -660,7 +787,7 @@ const CustomerMenu = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3.5 sm:gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 animate-in slide-in-from-bottom-5 duration-700">
             {filteredItems.map(item => (
               <MenuCard
                 key={item.id}
@@ -676,21 +803,32 @@ const CustomerMenu = () => {
         )}
       </main>
 
-      {/* ── Sticky Cart Button ────────────────────────────────── */}
-      {itemCount > 0 && !showCart && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 z-20" style={{ background: darkMode ? 'linear-gradient(to top, #0D0D0D 60%, transparent)' : 'linear-gradient(to top, #f9fafb 60%, transparent)' }}>
+      {itemCount > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 p-6 z-40 bg-gradient-to-t from-black/20 to-transparent pointer-events-none">
           <button
             onClick={() => setShowCart(true)}
-            className="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white font-black py-4 rounded-2xl shadow-xl shadow-amber-100/60 flex items-center justify-between px-5 cursor-pointer transition-all"
+            className="pointer-events-auto w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white font-black py-5 rounded-[2rem] shadow-2xl shadow-amber-500/40 flex items-center justify-between px-8 cursor-pointer transition-all animate-in slide-in-from-bottom-10 duration-500 hover:-translate-y-1"
           >
-            <div className="bg-amber-600/50 rounded-xl w-8 h-8 flex items-center justify-center text-sm font-black">{itemCount}</div>
-            <span className="text-base">View Cart</span>
-            <span className="text-base font-black">₹{total.toLocaleString('en-IN')}</span>
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 backdrop-blur-md rounded-xl w-10 h-10 flex items-center justify-center text-sm font-black ring-1 ring-white/30">
+                {itemCount}
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 leading-tight">Your Selection</p>
+                <p className="text-sm font-black">View Order Summary</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 leading-tight">Total Payable</p>
+              <p className="text-lg font-black tracking-tight">
+                {formatINR(total + (total * (restaurant?.taxPercentage || 0) / 100) + (total * (restaurant?.serviceCharge || 0) / 100))}
+              </p>
+            </div>
           </button>
         </div>
       )}
 
-      {/* ── Cart Panel ───────────────────────────────────────── */}
+      {/* â”€â”€ Cart Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showCart && (
         <CartPanel
           cart={cart}
@@ -702,10 +840,11 @@ const CustomerMenu = () => {
           onRemove={(id) => { removeFromCart(id); if (cart.length <= 1) setShowCart(false); }}
           onPlaceOrder={placeOrder}
           placing={placing}
+          restaurant={restaurant}
         />
       )}
 
-      {/* ── Food Detail Modal [NEW] ─────────────────────────── */}
+      {/* â”€â”€ Food Detail Modal [NEW] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {selectedItem && (
         <ItemDetailModal 
           item={selectedItem} 
@@ -714,7 +853,7 @@ const CustomerMenu = () => {
         />
       )}
 
-      {/* ── Confirm Clear Modal ──────────────────────────────── */}
+      {/* â”€â”€ Confirm Clear Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {confirmClear && (
         <ConfirmModal
           title="Clear Cart?"

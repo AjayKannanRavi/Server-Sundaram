@@ -1,70 +1,87 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Phone, User, CheckCircle, ChevronRight, ArrowLeft, Loader2, ChefHat } from 'lucide-react';
+import { Phone, User, ChevronRight, ArrowLeft, Loader2, ChefHat } from 'lucide-react';
 import { API_BASE_URL } from '../api/api';
 
 const CustomerLogin = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { hotelId: urlHotelId } = useParams();
+    const { hotelId } = useParams();
     const queryParams = new URLSearchParams(location.search);
-    const tableId = queryParams.get('tableId') || '1';
-    const hotelId = urlHotelId;
+    const tableId = queryParams.get('tableId') || queryParams.get('tableid') || '';
 
-    const [step, setStep] = useState(1); // 1: Info, 2: OTP
+    const [step, setStep] = useState(1);
     const [name, setName] = useState('');
     const [mobile, setMobile] = useState('');
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [restaurantName, setRestaurantName] = useState('Loading...');
 
-    const [restaurantName, setRestaurantName] = useState("Loading...");
+    const formatMobileForOtpDisplay = (value) => {
+        const raw = String(value || '').trim();
+        const digits = raw.replace(/\D/g, '');
+
+        if (!digits) return '';
+        if (digits.length === 10) return `+91 ${digits}`;
+        if (digits.length === 12 && digits.startsWith('91')) return `+91 ${digits.slice(2)}`;
+        if (raw.startsWith('+')) return raw;
+        return `+${digits}`;
+    };
 
     useEffect(() => {
-        // Fetch Restaurant details
         const fetchRestaurant = async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/restaurant`, {
+                const response = await axios.get(`${API_BASE_URL}/restaurant`, {
                     headers: { 'X-Hotel-Id': hotelId }
                 });
-                if (res.data && res.data.name) {
-                    setRestaurantName(res.data.name);
+
+                if (response.data && response.data.name) {
+                    setRestaurantName(response.data.name);
                 }
             } catch (err) {
-                setRestaurantName("ServeSmart Restaurant");
+                setRestaurantName('serversundaram Restaurant');
             }
         };
+
         fetchRestaurant();
 
-        // Check if already logged in
         const customer = localStorage.getItem('customer');
-        if (customer) {
-            const redirectUrl = `/${hotelId}/menu?tableId=${tableId}`;
-            navigate(redirectUrl);
+        if (customer && tableId) {
+            navigate(`/${hotelId}/menu?tableId=${tableId}`);
         }
-    }, [navigate, tableId, hotelId]);
+    }, [hotelId, navigate, tableId]);
 
     const handleSendOtp = async (e) => {
         e.preventDefault();
+
         if (!name || !mobile) {
-            setError('Please fill in all details');
+            setError('Please fill in your name and mobile number');
             return;
         }
+
         setLoading(true);
         setError('');
+
         try {
-            await axios.post(`${API_BASE_URL}/customers/otp/send`, {
-                name,
-                mobileNumber: mobile
-            }, {
-                headers: {
-                    'X-Hotel-Id': hotelId
+            await axios.post(
+                `${API_BASE_URL}/customers/otp/send`,
+                {
+                    name,
+                    mobileNumber: mobile
+                },
+                {
+                    headers: {
+                        'X-Hotel-Id': hotelId
+                    }
                 }
-            });
+            );
+
             setStep(2);
         } catch (err) {
-            setError('Failed to send OTP. Please try again.');
+            const backendError = err?.response?.data?.error;
+            setError(backendError || 'Failed to send OTP. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -72,31 +89,37 @@ const CustomerLogin = () => {
 
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
+
         if (!otp) {
             setError('Please enter OTP');
             return;
         }
+
         setLoading(true);
         setError('');
+
         try {
-            const response = await axios.post(`${API_BASE_URL}/customers/otp/verify`, {
-                mobileNumber: mobile,
-                otp,
-                tableId
-            }, {
-                headers: {
-                    'X-Hotel-Id': hotelId
+            const response = await axios.post(
+                `${API_BASE_URL}/customers/otp/verify`,
+                {
+                    mobileNumber: mobile,
+                    otp,
+                    tableId
+                },
+                {
+                    headers: {
+                        'X-Hotel-Id': hotelId
+                    }
                 }
-            });
-            
+            );
+
             const customerData = {
                 ...response.data,
-                hotelId: hotelId
+                hotelId
             };
-            
+
             localStorage.setItem('customer', JSON.stringify(customerData));
-            const redirectUrl = `/${hotelId}/menu?tableId=${tableId}`;
-            navigate(redirectUrl);
+            navigate(`/${hotelId}/menu?tableId=${tableId}`);
         } catch (err) {
             setError('Invalid OTP. Please check and try again.');
         } finally {
@@ -105,41 +128,41 @@ const CustomerLogin = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#0D0D0D] flex flex-col items-center justify-center p-4">
-            {/* Logo Section */}
-            <div className="flex flex-col items-center mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
-                <div className="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-amber-500/20 mb-4">
-                    <ChefHat size={32} className="text-white" />
+        <div className="min-h-screen flex flex-col items-center justify-start overflow-x-hidden bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.95),transparent_26%),radial-gradient(circle_at_top_right,rgba(224,231,255,0.85),transparent_24%),linear-gradient(180deg,#dbeafe_0%,#e0e7ff_48%,#eff6ff_100%)] px-4 py-8 text-slate-900" style={{ paddingBottom: 'env(safe-area-inset-bottom, 24px)' }}>
+            <div className="w-full max-w-sm mx-auto">
+                <div className="mb-8 flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-700">
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-500 to-violet-500 shadow-2xl shadow-blue-500/20">
+                        <ChefHat size={32} className="text-white" />
+                    </div>
+                    <h1 className="font-serif italic text-3xl text-slate-950 text-center">{restaurantName}</h1>
+                    <p className="mt-2 text-xs font-bold uppercase tracking-widest text-slate-500 text-center">Premium Dine-In Experience</p>
                 </div>
-                <h1 className="font-serif italic text-3xl text-amber-400">{restaurantName}</h1>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-2">Premium Dine-In Experience</p>
-            </div>
 
-            {/* Login Card */}
-            <div className="w-full max-w-sm bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-                {/* Decorative Accent */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-3xl -mr-16 -mt-16 rounded-full" />
-                
+            <div className="relative w-full overflow-hidden rounded-[2.5rem] border border-white/70 bg-white/65 p-8 shadow-[0_30px_90px_rgba(96,130,202,0.14)] backdrop-blur-2xl">
+                <div className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-blue-500/10 blur-3xl" />
+
                 {step === 1 ? (
                     <form onSubmit={handleSendOtp} className="space-y-6">
                         <div className="space-y-2">
-                            <h2 className="text-white text-2xl font-serif italic mb-2">Welcome</h2>
-                            <p className="text-gray-400 text-sm">Please login to access the menu at Table {tableId}</p>
+                            <h2 className="mb-2 text-2xl font-serif italic text-slate-950">Welcome</h2>
+                            <p className="text-sm text-slate-600">
+                                Please login to access the menu{tableId ? ` for Table ${tableId}` : ''}.
+                            </p>
                         </div>
 
                         {error && (
-                            <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-xs py-3 px-4 rounded-xl animate-in zoom-in-95">
+                            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-600 animate-in zoom-in-95">
                                 {error}
                             </div>
                         )}
 
                         <div className="space-y-4">
                             <div className="relative group">
-                                <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-amber-500 transition-colors" />
-                                <input 
-                                    type="text" 
-                                    placeholder="Your Name" 
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-600 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all font-bold"
+                                <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Your Name"
+                                    className="soft-input w-full rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-900 placeholder:text-slate-400 outline-none transition-all"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     required
@@ -147,11 +170,11 @@ const CustomerLogin = () => {
                             </div>
 
                             <div className="relative group">
-                                <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-amber-500 transition-colors" />
-                                <input 
-                                    type="tel" 
-                                    placeholder="Mobile Number" 
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-600 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all font-bold"
+                                <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                                <input
+                                    type="tel"
+                                    placeholder="Mobile Number"
+                                    className="soft-input w-full rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-900 placeholder:text-slate-400 outline-none transition-all"
                                     value={mobile}
                                     onChange={(e) => setMobile(e.target.value)}
                                     required
@@ -159,10 +182,10 @@ const CustomerLogin = () => {
                             </div>
                         </div>
 
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             disabled={loading}
-                            className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:opacity-50 text-gray-900 font-black py-4 rounded-2xl transition-all shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2"
+                            className="soft-button-gradient flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-black text-white transition-all active:scale-95 disabled:opacity-50"
                         >
                             {loading ? <Loader2 className="animate-spin" /> : <>Send OTP <ChevronRight size={18} /></>}
                         </button>
@@ -170,55 +193,56 @@ const CustomerLogin = () => {
                 ) : (
                     <form onSubmit={handleVerifyOtp} className="space-y-6">
                         <div className="space-y-2">
-                            <button 
-                                type="button" 
-                                onClick={() => setStep(1)} 
-                                className="flex items-center gap-1 text-gray-500 hover:text-amber-500 text-xs font-bold transition-colors mb-4"
+                            <button
+                                type="button"
+                                onClick={() => setStep(1)}
+                                className="mb-4 flex items-center gap-1 text-xs font-bold text-slate-500 transition-colors hover:text-blue-600"
                             >
                                 <ArrowLeft size={14} /> Back
                             </button>
-                            <h2 className="text-white text-2xl font-serif italic mb-2">Verify OTP</h2>
-                            <p className="text-gray-400 text-sm">Enter the 6-digit code sent to <span className="text-amber-400">+{mobile}</span></p>
+                            <h2 className="mb-2 text-2xl font-serif italic text-slate-950">Verify OTP</h2>
+                            <p className="text-sm text-slate-600">
+                                Enter the 6-digit code sent to <span className="text-blue-600">{formatMobileForOtpDisplay(mobile)}</span>
+                                {tableId ? <> for Table <span className="text-blue-600">{tableId}</span></> : ''}
+                            </p>
                         </div>
 
                         {error && (
-                            <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-xs py-3 px-4 rounded-xl animate-in zoom-in-95">
+                            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-600 animate-in zoom-in-95">
                                 {error}
                             </div>
                         )}
 
                         <div className="relative group">
-                            <CheckCircle size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-amber-500 transition-colors" />
-                            <input 
-                                type="text" 
-                                maxLength="6"
-                                placeholder="Enter 6-digit OTP" 
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-600 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 outline-none tracking-[0.5em] text-center text-xl font-black transition-all"
+                            <input
+                                type="text"
+                                placeholder="Enter OTP"
+                                className="soft-input w-full rounded-2xl py-4 pl-12 pr-4 text-center text-xl font-black tracking-[0.5em] text-slate-900 placeholder:text-slate-400 outline-none transition-all"
                                 value={otp}
                                 onChange={(e) => setOtp(e.target.value)}
                                 required
                             />
                         </div>
 
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             disabled={loading}
-                            className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:opacity-50 text-gray-900 font-black py-4 rounded-2xl transition-all shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2"
+                            className="soft-button-gradient flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-black text-white transition-all active:scale-95 disabled:opacity-50"
                         >
                             {loading ? <Loader2 className="animate-spin" /> : <>Verify & Access Menu</>}
                         </button>
 
-                        <p className="text-center text-gray-600 text-[10px] font-bold uppercase tracking-widest mt-4">
-                            Didn't receive code? <button type="button" onClick={handleSendOtp} className="text-amber-500 hover:underline">Resend</button>
+                        <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            Didn't receive code? <button type="button" onClick={handleSendOtp} className="text-blue-600 hover:underline">Resend</button>
                         </p>
                     </form>
                 )}
             </div>
 
-            {/* Footer Tip */}
-            <p className="mt-8 text-gray-600 text-[10px] font-bold uppercase tracking-[0.2em] text-center max-w-[200px] leading-relaxed">
+            <p className="mt-8 text-center text-[10px] font-bold uppercase tracking-[0.2em] leading-relaxed text-slate-500">
                 Tip: Check your server console for the mock OTP
             </p>
+            </div>
         </div>
     );
 };

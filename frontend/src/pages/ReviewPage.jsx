@@ -52,6 +52,8 @@ const ReviewPage = () => {
           'X-Hotel-Id': hotelId
         }
       });
+
+      localStorage.removeItem('customer');
       setSubmitted(true);
     } catch (err) {
       setError('Failed to submit review. Please try again.');
@@ -75,15 +77,9 @@ const ReviewPage = () => {
             <Star key={i} size={28} className="text-yellow-400 fill-yellow-400" />
           ))}
         </div>
-        <button
-          onClick={() => {
-            const menuUrl = `/${hotelId}/menu?tableId=${tableId}`;
-            window.location.href = menuUrl;
-          }}
-          className="mt-4 bg-gray-900 text-white font-black px-8 py-4 rounded-2xl hover:bg-black transition cursor-pointer shadow-lg"
-        >
-          Start New Visit
-        </button>
+        <p className="text-gray-400 text-sm font-medium text-center max-w-xs">
+          Your session has been logged out. Visit again by scanning the QR code for a new session.
+        </p>
       </div>
     );
   }

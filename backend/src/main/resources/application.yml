@@ -9,15 +9,27 @@ spring:
     username: ${DB_USER:}
     password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:30}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:30000}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
+      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:0}
   jpa:
     hibernate:
       ddl-auto: none
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
-    show-sql: true
+    show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${FORMAT_SQL:false}
+        jdbc:
+          batch_size: ${HIBERNATE_BATCH_SIZE:50}
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
 
 app:
   tenant:
@@ -30,7 +42,7 @@ app:
     default-tenant-id: ${APP_SEED_TENANT_ID:1}
     admin-username: ${APP_SEED_ADMIN_USERNAME:admin}
     admin-password: ${APP_SEED_ADMIN_PASSWORD:}
-    owner-username: ${APP_SEED_OWNER_USERNAME:owner@servesmart.local}
+    owner-username: ${APP_SEED_OWNER_USERNAME:owner@serversundaram.local}
     owner-password: ${APP_SEED_OWNER_PASSWORD:}
     kitchen-username: ${APP_SEED_KITCHEN_USERNAME:kitchen}
     kitchen-password: ${APP_SEED_KITCHEN_PASSWORD:}
@@ -38,10 +50,16 @@ app:
     backend-base: ${APP_BACKEND_BASE_URL:http://localhost:8085}
   auth:
     mock-otp: ${APP_MOCK_OTP:123456}
+    google-client-id: ${GOOGLE_CLIENT_ID:}
   database:
     host: ${DB_HOST:localhost}
     port: ${DB_PORT:3306}
-    params: ${DB_PARAMS:useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    params: ${DB_PARAMS:useSSL=true&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+  jwt:
+    secret: ${JWT_SECRET:your-super-secret-jwt-key-change-this-in-production-at-least-256-bits}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   twilio:
     account-sid: ${TWILIO_ACCOUNT_SID:}
     auth-token: ${TWILIO_AUTH_TOKEN:}

@@ -15,8 +15,16 @@ const BillPage = () => {
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [restaurant, setRestaurant] = useState({ taxPercentage: 0, serviceCharge: 0 });
 
   useEffect(() => {
+    // Fetch restaurant details for tax/service charge
+    axios.get(`${API_BASE_URL}/restaurant`, {
+      headers: { 'X-Hotel-Id': hotelId }
+    })
+      .then(res => setRestaurant(res.data))
+      .catch(err => console.error('Error fetching restaurant', err));
+
     if (!tableId) return;
 
     axios.get(`${API_BASE_URL}/orders/session?tableId=${tableId}`, {
@@ -54,11 +62,15 @@ const BillPage = () => {
     });
     client.activate();
     return () => client.deactivate();
-  }, [tableId]);
+  }, [tableId, hotelId]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500 font-bold">Loading your bill...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500 font-bold italic tracking-widest animate-pulse">Loading your bill...</div>;
 
-  const sessionTotal = sessionOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+  const subtotal = sessionOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+  const taxAmount = subtotal * (parseFloat(restaurant.taxPercentage || 0) / 100);
+  const serviceChargeAmount = subtotal * (parseFloat(restaurant.serviceCharge || 0) / 100);
+  const grandTotal = subtotal + taxAmount + serviceChargeAmount;
+
   const allReceived = sessionOrders.length > 0 && sessionOrders.every(o => o.status === 'COMPLETED' || o.status === 'SERVED' || o.paymentStatus === 'PAID');
 
   if (redirecting) {
@@ -86,6 +98,13 @@ const BillPage = () => {
           <p className="text-gray-500 font-medium mt-1">Table {tableId} • {sessionOrders.length} order{sessionOrders.length > 1 ? 's' : ''}</p>
         </div>
 
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 mb-6 text-center space-y-1">
+          <p className="text-lg font-black text-gray-900">{restaurant.name}</p>
+          {restaurant.address && <p className="text-sm text-gray-500 font-medium">{restaurant.address}</p>}
+          {restaurant.contactNumber && <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Ph: {restaurant.contactNumber}</p>}
+          {restaurant.gstNumber && <p className="text-xs font-black uppercase tracking-widest text-gray-700">GST ID: {restaurant.gstNumber}</p>}
+        </div>
+
         {/* Order Breakdown */}
         <div className="space-y-4 mb-6">
           {sessionOrders.map((order, idx) => (
@@ -95,6 +114,7 @@ const BillPage = () => {
                 <span className={`text-[10px] font-black px-2 py-1 rounded-full ${
                   order.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
                   order.status === 'SERVED' ? 'bg-blue-100 text-blue-700' :
+                   order.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
                   'bg-gray-100 text-gray-500'
                 }`}>{order.status}</span>
               </div>
@@ -114,25 +134,41 @@ const BillPage = () => {
           ))}
         </div>
 
-        {/* Grand Total */}
-        <div className="bg-gray-900 text-white rounded-3xl p-6 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Grand Total</p>
-               <p className="text-4xl font-black">₹{sessionTotal.toLocaleString('en-IN')}</p>
-            </div>
-            <div className="text-right">
-              {isPaid ? (
-                <span className="flex items-center gap-2 text-green-400 font-black text-sm">
-                  <CheckCircle size={20} /> PAID
-                </span>
-              ) : (
-                <span className="flex items-center gap-2 text-yellow-400 font-bold text-sm">
-                  <Clock size={20} /> Awaiting Payment
-                </span>
-              )}
-            </div>
+        {/* Cost Breakdown Card */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 mb-6 space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">Items Subtotal</span>
+            <span className="font-black text-gray-900 text-lg">₹{subtotal.toLocaleString('en-IN')}</span>
           </div>
+          {restaurant.taxPercentage > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">GST ({restaurant.taxPercentage}%)</span>
+              <span className="font-bold text-gray-900">₹{taxAmount.toLocaleString('en-IN')}</span>
+            </div>
+          )}
+          {restaurant.serviceCharge > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">Service Charge ({restaurant.serviceCharge}%)</span>
+              <span className="font-bold text-gray-900">₹{serviceChargeAmount.toLocaleString('en-IN')}</span>
+            </div>
+          )}
+          <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+             <span className="text-gray-900 font-black uppercase tracking-[0.2em] text-xs">Grand Total</span>
+             <span className="text-4xl font-black text-gray-900">₹{grandTotal.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+
+        {/* Payment Status */}
+        <div className={`rounded-2xl p-6 mb-6 flex justify-between items-center ${isPaid ? 'bg-green-500 text-white' : 'bg-gray-900 text-white'}`}>
+          <div className="flex items-center gap-3">
+            {isPaid ? <CheckCircle size={28} /> : <Clock size={28} />}
+            <span className="font-black text-xl uppercase tracking-tighter">{isPaid ? 'PAID' : 'Pending Payment'}</span>
+          </div>
+          {!isPaid && (
+            <div className="p-3 bg-white/10 rounded-xl">
+               <span className="text-[10px] font-black uppercase tracking-widest">Pay in Kitchen</span>
+            </div>
+          )}
         </div>
 
         {/* Status Message */}
@@ -142,6 +178,25 @@ const BillPage = () => {
             <p className="text-blue-500 text-sm font-medium">
               Please wait while our staff processes your payment. This page will update automatically.
             </p>
+          </div>
+        )}
+        
+        {isPaid && !redirecting && (
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center shadow-sm">
+            <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-lg">
+              <CheckCircle size={24} />
+            </div>
+            <h3 className="text-xl font-black text-emerald-900 mb-2">Session Complete!</h3>
+            <p className="text-emerald-700 font-medium mb-6">Thank you for dining with us. We hope you had a wonderful time!</p>
+            <button 
+              onClick={() => {
+                const sessionId = sessionOrders[0]?.sessionId || '';
+                window.location.href = `/${hotelId}/review?tableId=${tableId}&sessionId=${sessionId}`;
+              }}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl transition shadow-xl shadow-emerald-100 flex items-center justify-center gap-3"
+            >
+              <Star size={20} fill="currentColor" /> Share Your Experience
+            </button>
           </div>
         )}
       </div>

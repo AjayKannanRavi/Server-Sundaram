@@ -5,7 +5,7 @@ import java.sql.Statement;
 
 public class DbQuery {
     public static void main(String[] args) {
-        String url = System.getenv().getOrDefault("DB_URL", "jdbc:mysql://localhost:3306/servesmart_db");
+        String url = System.getenv().getOrDefault("DB_URL", "jdbc:mysql://localhost:3306/servesmart");
         String user = System.getenv().getOrDefault("DB_USER", "");
         String pass = System.getenv().getOrDefault("DB_PASSWORD", "");
         

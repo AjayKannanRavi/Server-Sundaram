@@ -1,0 +1,95 @@
+PROJECT NAME: ServerSundaram / Servesmart
+ARCHITECTURE: Web Application (SaaS Multi-tenant Architecture)
+TECH STACK: 
+  - Frontend: React JS (Vite), TailwindCSS, React Router DOM, Axios, Lucide Icons, Stomp/WebSocket
+  - Backend: Java 17+, Spring Boot, Spring Security (JWT), Hibernate/JPA, WebSocket (STOMP)
+  - Database: MySQL (Relational)
+
+PROJECT DOMAIN:
+A multi-tenant Restaurant POS (Point of Sale), SaaS Management, and Digital Menu Ordering platform.
+
+==============================================
+MODULE DETAILS FOR AUTOMATED TESTING
+==============================================
+
+1. AUTHENTICATION & SECURITY MODULE
+   - Entities: Staff, StaffRole, Customer, SaasSettings
+   - Scenarios:
+     - Super Admin login / SaaS Admin management
+     - Tenant-level staff login (Owner, Manager, Captain, Kitchen)
+     - Customer OTP / Session generation
+     - JWT Token generation, validation, and multi-tenant security enforcement (X-Hotel-Id headers)
+   - Checks: Verify JWT filter intercepts endpoints correctly; Verify OTP bypass logic.
+
+2. SAAS / MULTI-TENANCY MODULE
+   - Entities: Restaurant
+   - Scenarios:
+     - Registration of new Restaurant clients
+     - Tenant switching and isolation of data via Hibernate Filters (tenant_id)
+     - Billing / subscription status per tenant
+   - Checks: Verify data bleed between tenants does not occur; Verify proper auto-increment handling.
+
+3. INVENTORY & RECIPE MANAGEMENT MODULE
+   - Entities: RawMaterial, RecipeItem, DailyUsageLog
+   - Scenarios:
+     - CRUD operations for raw ingredients mapping to measurement units (kg, liters, units)
+     - Recipe mapping (associating raw material quantities to final Menu Items)
+     - End-of-day stock closing & automatic consumption deductions
+   - Checks: Ensure stock doesn't fall below zero incorrectly; Verify usage calculations based on daily sales.
+
+4. SUPPLIER & PURCHASE MODULE
+   - Entities: Supplier, PurchaseInvoice, InvoiceItem
+   - Scenarios:
+     - Adding and managing vendor profiles
+     - Generating purchase invoices for incoming raw material stock
+     - Stock auto-increment when purchase invoices are "RECEIVED"
+   - Checks: Verify total calculations in invoices; Ensure stock adds correctly to Raw Material on invoice completion.
+
+5. MENU & CATEGORY MODULE
+   - Entities: Category, MenuItem
+   - Scenarios:
+     - Uploading menu images to the static backend (/uploads)
+     - Marking items as Veg/Non-Veg
+     - Pricing, Tax, and availability toggles
+   - Checks: Image retrieval bypasses security filter; Category filtering works on customer UI.
+
+6. ORDER LIFECYCLE & KITCHEN MODULE (KOT)
+   - Entities: RestaurantOrder, OrderItem, OrderStatus (PENDING, ACCEPTED, PREPARING, READY, SERVED, COMPLETED, REJECTED)
+   - Scenarios:
+     - Customer generating KOT via table QR scanning
+     - Captain (Waiter) editing or confirming the order
+     - Kitchen receiving real-time WebSocket signals for live tickets
+     - Handling rejected orders and custom rejection reasons
+   - Checks: Ensure WebSockets fire on every state change; Verify payment blocks if order is not completed/served.
+
+7. BILLING & FINANCE MODULE
+   - Entities: Payment, PaymentStatus, FinancialTransaction
+   - Scenarios:
+     - Bill generation (subtotal, SGST/CGST, Service Charges)
+     - Printing thermal 80mm receipts 
+     - Settling payments via multiple modes (Cash, Card, UPI)
+     - Tracking revenue and analytical dashboards
+   - Checks: Receipt template generation (print CSS constraints); Tax percentage calculations.
+
+8. TABLE & QR MANAGEMENT MODULE
+   - Entities: RestaurantTable
+   - Scenarios:
+     - Generating dynamic QR Codes tied to specific tables and tenant IDs
+     - Printing 100mm/150mm digital QRs
+     - Freeing up tables upon session completion
+   - Checks: QR Code data structure contains the correct Table ID and X-Hotel-Id; QR Print layout isolation.
+
+9. CUSTOMER PORTAL & REVIEW MODULE
+   - Entities: Review
+   - Scenarios:
+     - Customer browsing digital menu, viewing Live Order Tracker, and raising billing requests
+     - Post-meal review and 5-star rating scale
+   - Checks: Verify session closure automatically triggers the feedback redirect.
+
+==============================================
+SYSTEM READINESS VERIFICATION CHECKS
+==============================================
+[X] Database ID Migration Completed Successfully (Atomic IDs restored)
+[X] Print CSS Collisions Handled (QR Code and Thermal Reciept isolation)
+[X] Static Asset Whitelisting applied (/uploads bypass JWT)
+[X] Staff Auth Storage synchronization logic validated for profile edits.

@@ -1,0 +1,14 @@
+{
+  "name": "servesmart-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev:backend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$p=(Get-NetTCPConnection -LocalPort 8085 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess); if ($p) { Stop-Process -Id $p -Force }; Set-Location backend; .\\mvnw.cmd spring-boot:run\"",
+    "dev:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$p=(netstat -ano | Select-String '127\\.0\\.0\\.1:5173\\s+0\\.0\\.0\\.0:0\\s+LISTENING' | ForEach-Object { ($_ -split '\\s+')[-1] } | Select-Object -First 1); if ($p) { taskkill /PID $p /F | Out-Null }; Set-Location frontend; npm run dev -- --host 127.0.0.1 --port 5173 --strictPort\"",
+    "dev:tunnel": "C:\\Progra~2\\cloudflared\\cloudflared.exe tunnel --url http://localhost:5173 --no-autoupdate",
+    "dev:all": "concurrently -n BACKEND,FRONTEND,TUNNEL -c blue,green,magenta \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:tunnel\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

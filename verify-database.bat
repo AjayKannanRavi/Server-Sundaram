@@ -9,13 +9,13 @@ set DB_HOST=localhost
 set DB_PORT=3306
 set DB_USER=root
 set DB_PASS=Ajay@111
-set DB_NAME_MASTER=servesmart_db
+set DB_NAME_MASTER=servesmart
 
 :mainmenu
 cls
-echo ════════════════════════════════════════════
-echo   ServeSmart Database Verification Tool
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+echo   serversundaram Database Verification Tool
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo.
 echo 1. List All Databases
 echo 2. Check Master Database Hotels
@@ -40,9 +40,9 @@ goto mainmenu
 
 :list_databases
 cls
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo Listing All Databases...
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo.
 mysql -h %DB_HOST% -u %DB_USER% -p%DB_PASS% -e "SHOW DATABASES;"
 echo.
@@ -51,9 +51,9 @@ goto mainmenu
 
 :master_hotels
 cls
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo Master Database - Hotels
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo.
 echo Total Hotels:
 mysql -h %DB_HOST% -u %DB_USER% -p%DB_PASS% -D %DB_NAME_MASTER% -e "SELECT COUNT(*) as total_hotels FROM restaurant;"
@@ -69,9 +69,9 @@ goto mainmenu
 
 :tenant_database
 cls
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo Tenant Database Verification
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo.
 set /p hotel_id="Enter Hotel ID: "
 set "db_tenant=ss_hotel_!hotel_id!"
@@ -106,9 +106,9 @@ goto mainmenu
 
 :quick_orders
 cls
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo Quick Orders Check
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo.
 set /p hotel_id="Enter Hotel ID: "
 set "db_tenant=ss_hotel_!hotel_id!"
@@ -131,11 +131,11 @@ goto mainmenu
 
 :db_size
 cls
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo Database Size Information
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo.
-mysql -h %DB_HOST% -u %DB_USER% -p%DB_PASS% -e "SELECT table_schema as 'Database', ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as 'Size in MB' FROM information_schema.tables WHERE table_schema IN ('servesmart_db', 'ss_hotel_1', 'ss_hotel_2', 'ss_hotel_3', 'ss_hotel_4', 'ss_hotel_5', 'ss_hotel_6') GROUP BY table_schema;"
+mysql -h %DB_HOST% -u %DB_USER% -p%DB_PASS% -e "SELECT table_schema as 'Database', ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as 'Size in MB' FROM information_schema.tables WHERE table_schema IN ('servesmart', 'ss_hotel_1', 'ss_hotel_2', 'ss_hotel_3', 'ss_hotel_4', 'ss_hotel_5', 'ss_hotel_6') GROUP BY table_schema;"
 
 echo.
 pause
@@ -143,9 +143,9 @@ goto mainmenu
 
 :test_connection
 cls
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo Testing Database Connection
-echo ════════════════════════════════════════════
+echo â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 echo.
 mysql -h %DB_HOST% -u %DB_USER% -p%DB_PASS% -e "SELECT 'Connection Successful!' as status, NOW() as timestamp;"
 if %ERRORLEVEL% EQU 0 (

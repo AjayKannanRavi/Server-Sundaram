@@ -1,454 +1,793 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Building2, User, Mail, Lock, Phone, MapPin, CheckCircle, ArrowRight, Share2, ExternalLink, Zap, Star, ShieldCheck } from 'lucide-react';
+import {
+  Building2, User, Mail, Lock, Eye, EyeOff,
+  Phone, MapPin, CheckCircle, ArrowRight,
+  Share2, ExternalLink, Zap, Star, ShieldCheck,
+  UtensilsCrossed, ChefHat, Users, CreditCard
+} from 'lucide-react';
 import { API_BASE_URL } from '../api/api';
 
+const PLANS = [
+  { id: 'STARTER', label: 'Starter', price: '₹1,099/mo', desc: 'Up to 5 tables', icon: Zap, color: '#6366f1' },
+  { id: 'CLASSIC', label: 'Classic', price: '₹1,499/mo', desc: 'Up to 20 tables', icon: Star, color: '#0ea5e9' },
+  { id: 'PREMIUM', label: 'Premium', price: '₹2,499/mo', desc: 'Unlimited tables', icon: ShieldCheck, color: '#10b981' },
+];
+
+const SIDEBAR_FEATURES = [
+  { title: 'Multi-Tenant Isolation', desc: 'Secure, private data environment for your restaurant.', icon: ShieldCheck },
+  { title: 'Server Sundaram Control Panel', desc: 'Manage your entire business from one place.', icon: ChefHat },
+  { title: 'Seamless Onboarding', desc: 'Go live in less than 60 seconds.', icon: Zap },
+];
+
 const HotelRegistration = () => {
-    const location = useLocation();
-    const queryParams = new URLSearchParams(location.search);
-    const initialPlan = queryParams.get('plan') || 'STARTER';
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const initialPlan = queryParams.get('plan') || 'CLASSIC';
 
-    const [step, setStep] = useState(1);
-    const [regHotelId, setRegHotelId] = useState(null);
-    const [formData, setFormData] = useState({
-        name: '',
-        ownerName: '',
-        ownerEmail: '',
-        ownerPassword: '',
-        contactNumber: '',
-        address: '',
-        gstNumber: '',
-        planType: initialPlan,
-        adminUsername: '',
-        adminPassword: '',
-        kitchenUsername: '',
-        kitchenPassword: ''
-    });
+  const [step, setStep] = useState(1);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [regHotelId, setRegHotelId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOwnerPassword, setShowOwnerPassword] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [showKitchenPassword, setShowKitchenPassword] = useState(false);
+  const [showCaptainPassword, setShowCaptainPassword] = useState(false);
 
-    const handleSubmit = async (e) => {
-        if (e) e.preventDefault();
-        try {
-            // Input Validation
-            if (!formData.name || !formData.ownerName || !formData.ownerEmail || !formData.ownerPassword || !formData.adminUsername || !formData.adminPassword || !formData.kitchenUsername || !formData.kitchenPassword) {
-                alert('Please fill in all required fields including owner, admin, and kitchen credentials.');
-                return;
-            }
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    ownerName: '',
+    contactNumber: '',
+    ownerEmail: '',
+    ownerPassword: '',
+    gstNumber: '',
+    planType: initialPlan,
+    adminUsername: '',
+    adminPassword: '',
+    kitchenUsername: '',
+    kitchenPassword: '',
+    captainUsername: '',
+    captainPassword: ''
+  });
 
-            if (!/@gmail\.com$/i.test(formData.ownerEmail.trim())) {
-                alert('Owner admin email must be a valid Gmail address.');
-                return;
-            }
+  const [errors, setErrors] = useState({});
 
-            const payload = {
-                restaurant: {
-                    name: formData.name,
-                    ownerName: formData.ownerName,
-                    ownerEmail: formData.ownerEmail,
-                    ownerPassword: formData.ownerPassword,
-                    contactNumber: formData.contactNumber,
-                    address: formData.address,
-                    gstNumber: formData.gstNumber,
-                    planType: formData.planType
-                },
-                ownerEmail: formData.ownerEmail,
-                adminUsername: formData.adminUsername,
-                adminPassword: formData.adminPassword,
-                kitchenUsername: formData.kitchenUsername,
-                kitchenPassword: formData.kitchenPassword
-            };
-            const response = await axios.post(`${API_BASE_URL}/saas/hotels`, payload);
-            setRegHotelId(response.data.hotelId);
-            setStep(4); // Success step
-        } catch (err) {
-            console.error('Registration Error:', err.response?.data || err.message);
-            const errorMessage = err.response?.data?.message || 'Registration failed. This could be due to a duplicate email or missing information. Please check your details and try again.';
-            alert(errorMessage);
-        }
-    };
+  const set = (field) => (e) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    setErrors(prev => ({ ...prev, [field]: '' }));
+  };
 
-    const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text);
-        alert('Link copied to clipboard!');
-    };
+  const validateStep1 = () => {
+    const e = {};
+    if (!formData.name.trim()) e.name = 'Restaurant name is required';
+    if (!formData.address.trim()) e.address = 'Address is required';
+    if (!formData.ownerName.trim()) e.ownerName = 'Owner name is required';
+    if (!formData.contactNumber.trim()) e.contactNumber = 'Phone number is required';
+    if (!formData.ownerEmail.trim()) e.ownerEmail = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.ownerEmail)) e.ownerEmail = 'Enter a valid email address';
+    if (!formData.ownerPassword.trim()) e.ownerPassword = 'Password is required';
+    else if (formData.ownerPassword.length < 6) e.ownerPassword = 'Password must be at least 6 characters';
+    return e;
+  };
 
-    const baseUrl = window.location.origin;
+  const validateStep3 = () => {
+    const e = {};
+    if (!formData.adminUsername.trim()) e.adminUsername = 'Admin username is required';
+    if (!formData.adminPassword.trim()) e.adminPassword = 'Admin password is required';
+    if (!formData.kitchenUsername.trim()) e.kitchenUsername = 'Kitchen username is required';
+    if (!formData.kitchenPassword.trim()) e.kitchenPassword = 'Kitchen password is required';
+    if (!formData.captainUsername.trim()) e.captainUsername = 'Captain username is required';
+    if (!formData.captainPassword.trim()) e.captainPassword = 'Captain password is required';
+    return e;
+  };
 
+  const handleNextStep1 = (e) => {
+    e.preventDefault();
+    const validationErrors = validateStep1();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      const firstErrorEl = document.querySelector('[data-error]');
+      firstErrorEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setStep(2);
+  };
+
+  const handleProcessPayment = () => {
+    setIsProcessingPayment(true);
+    setTimeout(() => {
+      setIsProcessingPayment(false);
+      setStep(3);
+    }, 2500);
+  };
+
+  const handleSubmitFinal = async (e) => {
+    e.preventDefault();
+    const validationErrors = validateStep3();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      const firstErrorEl = document.querySelector('[data-error]');
+      firstErrorEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        restaurant: {
+          name: formData.name,
+          ownerName: formData.ownerName,
+          ownerEmail: formData.ownerEmail,
+          ownerPassword: formData.ownerPassword,
+          contactNumber: formData.contactNumber,
+          address: formData.address,
+          gstNumber: formData.gstNumber,
+          planType: formData.planType
+        },
+        ownerEmail: formData.ownerEmail,
+        adminUsername: formData.adminUsername,
+        adminPassword: formData.adminPassword,
+        kitchenUsername: formData.kitchenUsername,
+        kitchenPassword: formData.kitchenPassword,
+        captainUsername: formData.captainUsername,
+        captainPassword: formData.captainPassword
+      };
+      const response = await axios.post(`${API_BASE_URL}/saas/hotels`, payload);
+      setRegHotelId(response.data.hotelId);
+    } catch (err) {
+      console.error('Registration Error:', err.response?.data || err.message);
+      const errorMessage = err.response?.data?.message || 'Registration failed. Please check your details and try again.';
+      alert(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    alert('Copied to clipboard!');
+  };
+
+  const baseUrl = window.location.origin;
+
+  // ── Success screen ──
+  if (regHotelId) {
+    const links = [
+      { label: 'Owner Admin Login', path: `/${regHotelId}/owner/login`, color: '#6366f1' },
+      { label: 'Manager Admin Panel', path: `/${regHotelId}/admin/login`, color: '#0ea5e9' },
+      { label: 'Kitchen Display', path: `/${regHotelId}/kitchen/login`, color: '#10b981' },
+      { label: 'Captain Dashboard', path: `/${regHotelId}/captain/login`, color: '#f59e0b' },
+    ];
     return (
-        <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center p-4 font-sans selection:bg-amber-500/30">
-            <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-12 bg-white rounded-[48px] shadow-2xl overflow-hidden border border-white/5 relative">
-                
-                {/* Immersive Sidebar */}
-                <div className="md:col-span-5 bg-[#0D0D0D] p-12 text-white relative flex flex-col justify-between overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-amber-500/20 via-transparent to-transparent"></div>
-                    <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-amber-500/10 blur-[100px] rounded-full"></div>
-                    
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-16">
-                            <div className="w-10 h-10 bg-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/40">
-                                <Building2 size={24} className="text-white" />
-                            </div>
-                            <span className="text-2xl font-black tracking-tighter">Vitteno <span className="text-white/40 italic font-serif">SaaS</span></span>
-                        </div>
-                        
-                        <h2 className="text-5xl font-black leading-[1.1] mb-8">Empower your restaurant with Vitteno.</h2>
-                        <p className="text-gray-400 font-medium text-base leading-relaxed mb-12 max-w-xs">
-                            Join the elite ecosystem of digital-first hospitality partners.
-                        </p>
-                        
-                        <div className="space-y-8">
-                            {[
-                                { title: 'Multi-Tenant Isolation', desc: 'Secure, private data environment for your hotel.' },
-                                { title: 'Vitteno Control Panel', desc: 'Manage your entire business from one place.' },
-                                { title: 'Seamless Onboarding', desc: 'Go live in less than 60 seconds.' }
-                            ].map((item, i) => (
-                                <div key={i} className="flex gap-5 group">
-                                    <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-amber-500 flex-shrink-0 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
-                                        <CheckCircle size={16} />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-sm text-white/90">{item.title}</p>
-                                        <p className="text-xs text-gray-500 mt-1">{item.desc}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    
-                    <div className="relative z-10 pt-12">
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600">Built by Vitteno Technologies</p>
-                    </div>
-                </div>
-
-                {/* Main Form Area */}
-                <div className="md:col-span-7 p-12 lg:p-16 bg-white overflow-y-auto max-h-[90vh]">
-                    {step === 1 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-700">
-                            <div className="mb-12">
-                                <span className="text-amber-600 font-black text-[10px] uppercase tracking-widest bg-amber-50 px-3 py-1.5 rounded-full">Step 01/03</span>
-                                <h3 className="text-4xl font-black text-gray-900 mt-4 mb-2">The Basics.</h3>
-                                <p className="text-gray-500 font-bold text-sm italic serif">Tell us about your culinary empire.</p>
-                            </div>
-                            
-                            <form className="space-y-8">
-                                <div className="group">
-                                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 block ml-1 group-focus-within:text-amber-500 transition-colors">Restaurant Identity</label>
-                                    <div className="relative">
-                                        <Building2 className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-amber-500 transition-colors" size={20} />
-                                        <input 
-                                            value={formData.name}
-                                            onChange={e => setFormData({...formData, name: e.target.value})}
-                                            className="w-full bg-gray-50 border-2 border-transparent rounded-[2rem] py-5 pl-16 pr-8 font-bold text-gray-900 focus:bg-white focus:border-amber-500 outline-none transition-all shadow-sm"
-                                            placeholder="e.g. The Grand Pavilion"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="group">
-                                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 block ml-1 group-focus-within:text-amber-500 transition-colors">Physical Address</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-6 top-6 text-gray-300 group-focus-within:text-amber-500 transition-colors" size={20} />
-                                        <textarea 
-                                            value={formData.address}
-                                            onChange={e => setFormData({...formData, address: e.target.value})}
-                                            className="w-full bg-gray-50 border-2 border-transparent rounded-[2rem] py-6 pl-16 pr-8 font-bold text-gray-900 focus:bg-white focus:border-amber-500 outline-none transition-all h-36 resize-none shadow-sm"
-                                            placeholder="Downtown Financial District, Floor 4..."
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="pt-4">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setStep(2)}
-                                        className="w-full bg-gray-900 hover:bg-black text-white py-6 rounded-[2rem] font-black flex items-center justify-center gap-3 transition-all shadow-2xl shadow-gray-200 active:scale-95 group"
-                                    >
-                                        Next Component <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-
-                    {step === 2 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-700">
-                             <button onClick={() => setStep(1)} className="text-gray-400 font-black text-[10px] uppercase tracking-widest mb-8 hover:text-amber-600 transition flex items-center gap-2">
-                                <ArrowRight size={14} className="rotate-180" /> Back to Identity
-                             </button>
-                             <div className="mb-12">
-                                <span className="text-amber-600 font-black text-[10px] uppercase tracking-widest bg-amber-50 px-3 py-1.5 rounded-full">Step 02/03</span>
-                                <h3 className="text-4xl font-black text-gray-900 mt-4 mb-2">Master Admin.</h3>
-                                <p className="text-gray-500 font-bold text-sm italic serif">Define your administrative authority.</p>
-                            </div>
-                            
-                            <form className="space-y-6" autoComplete="off">
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="group">
-                                        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 block ml-1 group-focus-within:text-amber-500 transition-colors">Owner Name</label>
-                                        <input 
-                                            autoComplete="off"
-                                            value={formData.ownerName}
-                                            onChange={e => setFormData({...formData, ownerName: e.target.value})}
-                                            className="w-full bg-gray-50 border-2 border-transparent rounded-2xl py-5 px-6 font-bold text-gray-900 focus:bg-white focus:border-amber-500 outline-none transition-all shadow-sm"
-                                            placeholder="Enter owner full name"
-                                        />
-                                    </div>
-                                    <div className="group">
-                                        <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 block ml-1 group-focus-within:text-amber-500 transition-colors">Master Phone</label>
-                                        <input 
-                                            autoComplete="tel"
-                                            value={formData.contactNumber}
-                                            onChange={e => setFormData({...formData, contactNumber: e.target.value})}
-                                            className="w-full bg-gray-50 border-2 border-transparent rounded-2xl py-5 px-6 font-bold text-gray-900 focus:bg-white focus:border-amber-500 outline-none transition-all shadow-sm"
-                                            placeholder="10-digit mobile number"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="group">
-                                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 block ml-1 group-focus-within:text-amber-500 transition-colors">Owner Admin Gmail</label>
-                                    <input 
-                                        type="email"
-                                        autoComplete="email"
-                                        value={formData.ownerEmail}
-                                        onChange={e => setFormData({...formData, ownerEmail: e.target.value})}
-                                        className="w-full bg-gray-50 border-2 border-transparent rounded-2xl py-5 px-6 font-bold text-gray-900 focus:bg-white focus:border-amber-500 outline-none transition-all shadow-sm"
-                                        placeholder="your.email@example.com"
-                                    />
-                                </div>
-
-                                <div className="group">
-                                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 block ml-1 group-focus-within:text-amber-500 transition-colors">Secure Key</label>
-                                    <div className="relative">
-                                        <Lock className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                                        <input 
-                                            type="password"
-                                            autoComplete="new-password"
-                                            value={formData.ownerPassword}
-                                            onChange={e => setFormData({...formData, ownerPassword: e.target.value})}
-                                            className="w-full bg-gray-50 border-2 border-transparent rounded-2xl py-5 px-6 font-bold text-gray-900 focus:bg-white focus:border-amber-500 outline-none transition-all shadow-sm"
-                                            placeholder="••••••••"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="pt-6">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setStep(3)}
-                                        className="w-full bg-gray-900 text-white py-6 rounded-[2rem] font-black flex items-center justify-center gap-3 hover:bg-black transition-all shadow-2xl shadow-gray-100 active:scale-95"
-                                    >
-                                        Configure Credentials <ArrowRight size={22} />
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-
-                    {step === 3 && (
-                        <div className="animate-in fade-in slide-in-from-right duration-700">
-                             <button onClick={() => setStep(2)} className="text-gray-400 font-black text-[10px] uppercase tracking-widest mb-8 hover:text-amber-600 transition flex items-center gap-2">
-                                <ArrowRight size={14} className="rotate-180" /> Back to Admin
-                             </button>
-                             <div className="mb-12">
-                                <span className="text-amber-600 font-black text-[10px] uppercase tracking-widest bg-amber-50 px-3 py-1.5 rounded-full">Step 03/03</span>
-                                <h3 className="text-4xl font-black text-gray-900 mt-4 mb-2">Subscription & Access.</h3>
-                                <p className="text-gray-500 font-bold text-sm italic serif">Choose your plan and set functional access.</p>
-                            </div>
-
-                            <div className="mb-10 space-y-4">
-                                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3 block ml-1">Selected Plan</label>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    {[
-                                        { id: 'STARTER', label: 'Starter', price: '₹1,099', icon: Zap },
-                                        { id: 'CLASSIC', label: 'Classic', price: '₹1,499', icon: Zap },
-                                        { id: 'PREMIUM', label: 'Premium', price: '₹2,499', icon: Star },
-                                    ].map((p) => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            onClick={() => setFormData({ ...formData, planType: p.id })}
-                                            className={`p-5 rounded-3xl border-2 transition-all text-left relative overflow-hidden group ${
-                                                formData.planType === p.id 
-                                                ? 'border-amber-500 bg-amber-50 shadow-lg shadow-amber-500/10' 
-                                                : 'border-gray-100 hover:border-gray-200 bg-white'
-                                            }`}
-                                        >
-                                            <div className="relative z-10">
-                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-3 ${
-                                                    formData.planType === p.id ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'
-                                                }`}>
-                                                    <p.icon size={16} />
-                                                </div>
-                                                <p className={`font-black text-xs uppercase tracking-tight ${formData.planType === p.id ? 'text-amber-700' : 'text-gray-900'}`}>{p.label}</p>
-                                                <p className={`font-black text-lg ${formData.planType === p.id ? 'text-amber-600' : 'text-gray-400'}`}>{p.price}</p>
-                                            </div>
-                                            {formData.planType === p.id && (
-                                                <CheckCircle size={20} className="absolute top-4 right-4 text-amber-500 animate-in zoom-in" />
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            
-                            
-                            <form onSubmit={handleSubmit} className="space-y-8">
-                                <div className="p-8 bg-amber-50/50 rounded-[2.5rem] border border-amber-100/50 space-y-6">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-amber-200">
-                                            <Lock size={16} />
-                                        </div>
-                                        <h4 className="font-black text-gray-900 tracking-tight">Admin Credentials</h4>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="group">
-                                            <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-2 block">Admin Username</label>
-                                            <input 
-                                                autoComplete="off"
-                                                value={formData.adminUsername}
-                                                onChange={e => setFormData({...formData, adminUsername: e.target.value})}
-                                                className="w-full bg-white border border-gray-100 rounded-xl py-4 px-5 font-bold text-gray-900 outline-none focus:border-amber-500 transition-all shadow-sm"
-                                                placeholder="Enter admin username"
-                                            />
-                                        </div>
-                                        <div className="group">
-                                            <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-2 block">Admin Password</label>
-                                            <input 
-                                                type="password"
-                                                autoComplete="new-password"
-                                                value={formData.adminPassword}
-                                                onChange={e => setFormData({...formData, adminPassword: e.target.value})}
-                                                className="w-full bg-white border border-gray-100 rounded-xl py-4 px-5 font-bold text-gray-900 outline-none focus:border-amber-500 transition-all shadow-sm"
-                                                placeholder="••••••••"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 space-y-6">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-8 h-8 bg-gray-900 rounded-xl flex items-center justify-center text-white shadow-lg shadow-gray-200">
-                                            <User size={16} />
-                                        </div>
-                                        <h4 className="font-black text-gray-900 tracking-tight">Kitchen Credentials</h4>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="group">
-                                            <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-2 block">Kitchen Username</label>
-                                            <input 
-                                                autoComplete="off"
-                                                value={formData.kitchenUsername}
-                                                onChange={e => setFormData({...formData, kitchenUsername: e.target.value})}
-                                                className="w-full bg-white border border-gray-100 rounded-xl py-4 px-5 font-bold text-gray-900 outline-none focus:border-gray-900 transition-all shadow-sm"
-                                                placeholder="Enter kitchen username"
-                                            />
-                                        </div>
-                                        <div className="group">
-                                            <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-2 block">Kitchen Password</label>
-                                            <input 
-                                                type="password"
-                                                autoComplete="new-password"
-                                                value={formData.kitchenPassword}
-                                                onChange={e => setFormData({...formData, kitchenPassword: e.target.value})}
-                                                className="w-full bg-white border border-gray-100 rounded-xl py-4 px-5 font-bold text-gray-900 outline-none focus:border-gray-900 transition-all shadow-sm"
-                                                placeholder="••••••••"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="pt-4">
-                                    <button 
-                                        type="submit"
-                                        className="w-full bg-amber-500 text-white py-6 rounded-[2rem] font-black flex items-center justify-center gap-3 hover:bg-amber-600 transition-all shadow-2xl shadow-amber-500/20 active:scale-95"
-                                    >
-                                        Initialize Ecosystem <CheckCircle size={22} />
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-
-                    {step === 4 && (
-                        <div className="text-center animate-in zoom-in duration-700 max-w-md mx-auto">
-                            <div className="w-24 h-24 bg-green-50 text-green-500 rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-lg shadow-green-100 rotate-12">
-                                <CheckCircle size={48} />
-                            </div>
-                            <h3 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">Ecosystem Live!</h3>
-                            <p className="text-gray-500 font-bold mb-12 text-sm leading-relaxed">
-                                Your multi-tenant environment for <span className="text-amber-600">{formData.name}</span> is now active. Save these unique access credentials and links.
-                            </p>
-                            
-                            {/* User-Provided Staff Credentials */}
-                            <div className="space-y-4 mb-8 text-left bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <ShieldCheck size={18} className="text-blue-600" />
-                                    <h4 className="font-black text-blue-900 text-sm">Your Access Credentials</h4>
-                                </div>
-                                
-                                {/* Owner Admin */}
-                                <div className="bg-white rounded-xl p-4 border border-blue-100">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Owner Admin</p>
-                                    <div className="font-mono text-xs text-gray-900 space-y-1">
-                                        <div>Email: <span className="font-bold text-amber-600">{formData.ownerEmail}</span></div>
-                                        <div>Password: <span className="font-bold text-gray-700">{formData.ownerPassword}</span></div>
-                                    </div>
-                                </div>
-                                
-                                {/* Manager */}
-                                <div className="bg-white rounded-xl p-4 border border-blue-100">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Manager / Admin</p>
-                                    <div className="font-mono text-xs text-gray-900 space-y-1">
-                                        <div>Username: <span className="font-bold text-amber-600">{formData.adminUsername}</span></div>
-                                        <div>Password: <span className="font-bold text-gray-700">{formData.adminPassword}</span></div>
-                                    </div>
-                                </div>
-                                
-                                {/* Kitchen */}
-                                <div className="bg-white rounded-xl p-4 border border-blue-100">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Kitchen Staff</p>
-                                    <div className="font-mono text-xs text-gray-900 space-y-1">
-                                        <div>Username: <span className="font-bold text-amber-600">{formData.kitchenUsername}</span></div>
-                                        <div>Password: <span className="font-bold text-gray-700">{formData.kitchenPassword}</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="space-y-4 mb-12 text-left">
-                                {[
-                                    { label: 'Owner Admin Login', path: `/admin/login`, color: 'bg-purple-50 text-purple-700' },
-                                    { label: 'Manager Admin Panel', path: `/${regHotelId}/admin/login`, color: 'bg-indigo-50 text-indigo-700' },
-                                    { label: 'Kitchen Display', path: `/${regHotelId}/kitchen/login`, color: 'bg-orange-50 text-orange-700' }
-                                ].map((link, i) => (
-                                    <div key={i} className={`p-5 rounded-3xl border border-transparent hover:border-gray-200 transition-all ${link.color}`}>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{link.label}</span>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => copyToClipboard(`${baseUrl}${link.path}`)} className="p-1.5 hover:bg-white rounded-lg transition"><Share2 size={14}/></button>
-                                                <button onClick={() => window.open(link.path, '_blank')} className="p-1.5 hover:bg-white rounded-lg transition"><ExternalLink size={14}/></button>
-                                            </div>
-                                        </div>
-                                        <p className="text-xs font-mono font-bold truncate tracking-tight">{baseUrl}{link.path}</p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button 
-                                onClick={() => navigate(`/${regHotelId}/admin/login`)}
-                                className="w-full bg-gray-900 text-white py-6 rounded-[2rem] font-black hover:bg-black transition-all shadow-2xl shadow-gray-200"
-                            >
-                                Enter Admin Terminal
-                            </button>
-                        </div>
-                    )}
-                </div>
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8faff 0%, #eef2ff 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: "'Inter','Outfit',sans-serif" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');`}</style>
+        <div style={{ maxWidth: 560, width: '100%', background: 'white', borderRadius: 28, boxShadow: '0 20px 80px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+          <div style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', padding: '40px 40px 32px', textAlign: 'center' }}>
+            <div style={{ width: 72, height: 72, background: 'rgba(255,255,255,0.15)', borderRadius: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <CheckCircle size={36} color="white" />
             </div>
-            
-            <p className="fixed bottom-8 left-0 right-0 text-center text-white/20 text-[10px] font-bold uppercase tracking-[0.4em] pointer-events-none">
-                Vitteno Technologies · PaaS Multi-Tenant Solution
-            </p>
+            <h2 style={{ fontSize: 32, fontWeight: 900, color: 'white', margin: '0 0 8px', letterSpacing: '-0.03em' }}>You're Live! 🎉</h2>
+            <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, fontWeight: 600 }}>{formData.name} is now on Server Sundaram</p>
+          </div>
+
+          <div style={{ padding: '32px 40px 40px' }}>
+            {/* Credentials */}
+            <p style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#94a3b8', marginBottom: 12 }}>Your Credentials</p>
+            <div style={{ background: '#f8fafc', borderRadius: 16, padding: '16px 20px', marginBottom: 8, border: '1px solid #e8ecf4' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#94a3b8', marginBottom: 4 }}>Hotel ID</p>
+                  <p style={{ fontSize: 18, fontWeight: 900, color: '#6366f1' }}>{regHotelId}</p>
+                </div>
+                <button onClick={() => copyToClipboard(String(regHotelId))} style={{ background: '#eef2ff', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 11, fontWeight: 800, color: '#6366f1', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Copy</button>
+              </div>
+            </div>
+            {[
+              { label: 'Owner Admin', u: formData.ownerEmail, p: formData.ownerPassword },
+              { label: 'Manager / Admin', u: formData.adminUsername, p: formData.adminPassword },
+              { label: 'Kitchen Staff', u: formData.kitchenUsername, p: formData.kitchenPassword },
+              { label: 'Captain / Waiter', u: formData.captainUsername, p: formData.captainPassword },
+            ].map(c => (
+              <div key={c.label} style={{ background: '#f8fafc', borderRadius: 14, padding: '12px 18px', marginBottom: 8, border: '1px solid #e8ecf4' }}>
+                <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#94a3b8', marginBottom: 6 }}>{c.label}</p>
+                <p style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace', color: '#334155' }}>
+                  <span style={{ color: '#6366f1' }}>{c.u}</span> &nbsp;·&nbsp; {c.p}
+                </p>
+              </div>
+            ))}
+
+            {/* Access Links */}
+            <p style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#94a3b8', margin: '20px 0 12px' }}>Access Links</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+              {links.map(link => (
+                <div key={link.label} style={{ background: '#f8fafc', border: '1px solid #e8ecf4', borderRadius: 14, padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#94a3b8', marginBottom: 3 }}>{link.label}</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, fontFamily: 'monospace', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>{baseUrl}{link.path}</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => copyToClipboard(`${baseUrl}${link.path}`)} style={{ background: 'white', border: '1px solid #e8ecf4', borderRadius: 8, padding: '6px 8px', cursor: 'pointer' }}><Share2 size={13} color="#64748b" /></button>
+                    <button onClick={() => window.open(link.path, '_blank')} style={{ background: 'white', border: '1px solid #e8ecf4', borderRadius: 8, padding: '6px 8px', cursor: 'pointer' }}><ExternalLink size={13} color="#64748b" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => navigate(`/${regHotelId}/owner/login`)}
+              style={{ width: '100%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 18, padding: '18px', fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
+            >
+              Enter Owner Dashboard <ArrowRight size={18} />
+            </button>
+          </div>
         </div>
+      </div>
     );
+  }
+
+  // ── Registration form ──
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8faff 0%, #eef2ff 100%)', display: 'flex', alignItems: 'stretch', fontFamily: "'Inter','Outfit',sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        * { box-sizing: border-box; }
+        .reg-input {
+          width: 100%;
+          background: #f8fafc;
+          border: 1.5px solid #e8ecf4;
+          border-radius: 14px;
+          padding: 14px 18px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #0f172a;
+          outline: none;
+          transition: all 0.2s;
+          font-family: inherit;
+        }
+        .reg-input:focus {
+          border-color: #6366f1;
+          background: white;
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+        }
+        .reg-input.error { border-color: #ef4444; background: #fff5f5; }
+        .reg-input.error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+        .reg-input::placeholder { color: #cbd5e1; }
+        .reg-label {
+          display: block;
+          font-size: 11px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.18em;
+          color: #94a3b8;
+          margin-bottom: 8px;
+        }
+        .reg-error {
+          font-size: 11px;
+          font-weight: 700;
+          color: #ef4444;
+          margin-top: 5px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .plan-card {
+          border: 2px solid #e8ecf4;
+          border-radius: 16px;
+          padding: 16px;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: #f8fafc;
+          position: relative;
+          text-align: center;
+        }
+        .plan-card.selected {
+          border-color: #6366f1;
+          background: #eef2ff;
+          box-shadow: 0 4px 18px rgba(99,102,241,0.15);
+        }
+        .plan-card:hover:not(.selected) { border-color: #c7d2fe; background: white; }
+        .submit-btn {
+          width: 100%;
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          color: white;
+          border: none;
+          border-radius: 18px;
+          padding: 18px;
+          font-size: 15px;
+          font-weight: 800;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          box-shadow: 0 8px 28px rgba(99,102,241,0.35);
+          transition: all 0.2s;
+          font-family: inherit;
+        }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(99,102,241,0.45); }
+        .submit-btn:active { transform: translateY(0); }
+        .submit-btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+        .section-title {
+          font-size: 12px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.22em;
+          color: #6366f1;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 20px;
+        }
+        .section-title::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(to right, #e8ecf4, transparent);
+        }
+        .cred-box {
+          background: #f8fafc;
+          border: 1px solid #e8ecf4;
+          border-radius: 18px;
+          padding: 20px 22px;
+        }
+        .cred-box-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 16px;
+        }
+        .cred-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .input-wrap { position: relative; }
+        .eye-btn {
+          position: absolute;
+          right: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #94a3b8;
+          display: flex;
+          padding: 4px;
+        }
+        .eye-btn:hover { color: #6366f1; }
+      `}</style>
+
+      {/* ── LEFT DARK SIDEBAR ── */}
+      <div style={{
+        width: 360,
+        minWidth: 320,
+        flexShrink: 0,
+        background: 'linear-gradient(160deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%)',
+        padding: '40px 36px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        height: '100vh',
+        overflow: 'hidden'
+      }} className="hidden lg:flex">
+        {/* BG glows */}
+        <div style={{ position: 'absolute', top: -100, right: -80, width: 300, height: 300, borderRadius: '50%', background: 'rgba(99,102,241,0.15)', filter: 'blur(80px)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -80, left: -60, width: 250, height: 250, borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(80px)', pointerEvents: 'none' }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 52 }}>
+            <div style={{ width: 44, height: 44, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <UtensilsCrossed size={20} color="white" />
+            </div>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.22em', color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Restaurant POS</p>
+              <p style={{ fontSize: 16, fontWeight: 900, color: 'white', letterSpacing: '-0.02em' }}>Server Sundaram</p>
+            </div>
+          </div>
+
+          {/* Headline */}
+          <h2 style={{ fontSize: 34, fontWeight: 900, color: 'white', lineHeight: 1.1, letterSpacing: '-0.03em', marginBottom: 20 }}>
+            Create your<br />
+            <span style={{ background: 'linear-gradient(135deg, #818cf8, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>restaurant account.</span>
+          </h2>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 40 }}>
+            Join the ecosystem of digital-first hospitality partners across India.
+          </p>
+
+          {/* Features */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+            {SIDEBAR_FEATURES.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(99,102,241,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                    <Icon size={16} color="#818cf8" />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,0.9)', marginBottom: 3 }}>{f.title}</p>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>{f.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+
+        <p style={{ position: 'relative', zIndex: 1, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.28em', color: 'rgba(255,255,255,0.2)' }}>
+          Built by Server Sundaram Technologies
+        </p>
+      </div>
+
+      {/* ── RIGHT FORM ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '40px 32px' }}>
+        <div style={{ maxWidth: 640, marginLeft: 'auto', marginRight: 'auto' }}>
+
+          {/* Header */}
+          <div style={{ marginBottom: 36 }}>
+            {/* Mobile logo */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }} className="lg:hidden">
+              <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <UtensilsCrossed size={16} color="white" />
+              </div>
+              <p style={{ fontSize: 15, fontWeight: 900, color: '#0f172a' }}>Server Sundaram</p>
+            </div>
+            <h1 style={{ fontSize: 30, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', marginBottom: 8 }}>
+              Create your account
+            </h1>
+            <p style={{ fontSize: 15, color: '#64748b', fontWeight: 500 }}>
+              Fill in all the details below to register your restaurant on Server Sundaram.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12 }}>
+              <p style={{ fontSize: 13, color: '#64748b' }}>Already registered?</p>
+              <button
+                type="button"
+                onClick={() => navigate('/admin/login')}
+                style={{ fontSize: 13, fontWeight: 700, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                Login here →
+              </button>
+            </div>
+          </div>
+
+          {/* Stepper Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 32 }}>
+             {[1, 2, 3].map(s => (
+               <div key={s} style={{ display: 'flex', alignItems: 'center', flex: 1, gap: 8 }}>
+                 <div style={{ 
+                   width: 32, height: 32, borderRadius: '50%', 
+                   background: step >= s ? '#6366f1' : '#e2e8f0', 
+                   color: step >= s ? 'white' : '#64748b',
+                   display: 'flex', alignItems: 'center', justifyContent: 'center',
+                   fontSize: 14, fontWeight: 800, flexShrink: 0,
+                   transition: 'all 0.3s'
+                 }}>
+                   {step > s ? <CheckCircle size={16} color="white" /> : s}
+                 </div>
+                 {s < 3 && <div style={{ height: 2, background: step > s ? '#6366f1' : '#e2e8f0', flex: 1, transition: 'all 0.3s' }} />}
+               </div>
+             ))}
+          </div>
+
+          {step === 1 && (
+            <form onSubmit={handleNextStep1} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+              
+              {/* ── Section 1: Plan Selection ── */}
+              <div>
+                <p className="section-title"><CreditCard size={14} />Subscription Plan</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                  {PLANS.map(p => {
+                    const Icon = p.icon;
+                    const selected = formData.planType === p.id;
+                    return (
+                      <div
+                        key={p.id}
+                        className={`plan-card${selected ? ' selected' : ''}`}
+                        onClick={() => setFormData(prev => ({ ...prev, planType: p.id }))}
+                      >
+                        {selected && (
+                          <div style={{ position: 'absolute', top: 10, right: 10 }}>
+                            <CheckCircle size={16} color="#6366f1" />
+                          </div>
+                        )}
+                        <div style={{ width: 36, height: 36, borderRadius: 11, background: selected ? p.color : '#f1f5f9', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, transition: 'all 0.2s' }}>
+                          <Icon size={17} color={selected ? 'white' : '#94a3b8'} />
+                        </div>
+                        <p style={{ fontSize: 14, fontWeight: 800, color: selected ? '#4338ca' : '#334155', letterSpacing: '-0.01em' }}>{p.label}</p>
+                        <p style={{ fontSize: 15, fontWeight: 900, color: selected ? '#6366f1' : '#64748b', marginTop: 2 }}>{p.price}</p>
+                        <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{p.desc}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Section 2: Restaurant Identity ── */}
+              <div>
+                <p className="section-title"><Building2 size={14} />Restaurant Identity</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div data-error={errors.name ? 'true' : undefined}>
+                    <label className="reg-label">Restaurant Name *</label>
+                    <input
+                      className={`reg-input${errors.name ? ' error' : ''}`}
+                      value={formData.name}
+                      onChange={set('name')}
+                      placeholder="e.g. The Grand Pavilion"
+                    />
+                    {errors.name && <p className="reg-error">⚠ {errors.name}</p>}
+                  </div>
+
+                  <div data-error={errors.address ? 'true' : undefined}>
+                    <label className="reg-label">Physical Address *</label>
+                    <textarea
+                      className={`reg-input${errors.address ? ' error' : ''}`}
+                      value={formData.address}
+                      onChange={set('address')}
+                      placeholder="Street, Area, City, State..."
+                      rows={3}
+                      style={{ resize: 'vertical' }}
+                    />
+                    {errors.address && <p className="reg-error">⚠ {errors.address}</p>}
+                  </div>
+
+                  <div>
+                    <label className="reg-label">GST Number (Optional)</label>
+                    <input
+                      className="reg-input"
+                      value={formData.gstNumber}
+                      onChange={set('gstNumber')}
+                      placeholder="e.g. 29ABCDE1234F1Z5"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Section 3: Owner Details ── */}
+              <div>
+                <p className="section-title"><User size={14} />Owner Details</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div data-error={errors.ownerName ? 'true' : undefined}>
+                      <label className="reg-label">Owner Name *</label>
+                      <input
+                        className={`reg-input${errors.ownerName ? ' error' : ''}`}
+                        value={formData.ownerName}
+                        onChange={set('ownerName')}
+                        placeholder="Full name"
+                      />
+                      {errors.ownerName && <p className="reg-error">⚠ {errors.ownerName}</p>}
+                    </div>
+                    <div data-error={errors.contactNumber ? 'true' : undefined}>
+                      <label className="reg-label">Phone Number *</label>
+                      <input
+                        className={`reg-input${errors.contactNumber ? ' error' : ''}`}
+                        value={formData.contactNumber}
+                        onChange={set('contactNumber')}
+                        placeholder="10-digit mobile"
+                        type="tel"
+                      />
+                      {errors.contactNumber && <p className="reg-error">⚠ {errors.contactNumber}</p>}
+                    </div>
+                  </div>
+
+                  <div data-error={errors.ownerEmail ? 'true' : undefined}>
+                    <label className="reg-label">Owner Email *</label>
+                    <input
+                      className={`reg-input${errors.ownerEmail ? ' error' : ''}`}
+                      value={formData.ownerEmail}
+                      onChange={set('ownerEmail')}
+                      placeholder="your@email.com"
+                      type="email"
+                      autoComplete="email"
+                    />
+                    {errors.ownerEmail && <p className="reg-error">⚠ {errors.ownerEmail}</p>}
+                  </div>
+
+                  <div data-error={errors.ownerPassword ? 'true' : undefined}>
+                    <label className="reg-label">Owner Password *</label>
+                    <div className="input-wrap">
+                      <input
+                        className={`reg-input${errors.ownerPassword ? ' error' : ''}`}
+                        value={formData.ownerPassword}
+                        onChange={set('ownerPassword')}
+                        placeholder="••••••••"
+                        type={showOwnerPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        style={{ paddingRight: 44 }}
+                      />
+                      <button type="button" className="eye-btn" onClick={() => setShowOwnerPassword(v => !v)}>
+                        {showOwnerPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                      </button>
+                    </div>
+                    {errors.ownerPassword && <p className="reg-error">⚠ {errors.ownerPassword}</p>}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <button type="submit" className="submit-btn" style={{ background: 'linear-gradient(135deg, #0f172a, #334155)', color: 'white', boxShadow: '0 8px 28px rgba(15, 23, 42, 0.25)' }}>
+                  Continue to Payment <ArrowRight size={18} />
+                </button>
+              </div>
+
+            </form>
+          )}
+
+          {step === 2 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, textAlign: 'center', padding: '40px 0' }}>
+              <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', border: '1px solid #e0e7ff' }}>
+                <CreditCard size={40} color="#6366f1" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 26, fontWeight: 900, color: '#0f172a', marginBottom: 8, letterSpacing: '-0.02em' }}>Complete Payment</h3>
+                <p style={{ fontSize: 15, color: '#64748b' }}>
+                  You have selected the <strong>{PLANS.find(p => p.id === formData.planType)?.label}</strong> plan.
+                </p>
+                <div style={{ marginTop: 24, padding: '24px', background: 'white', borderRadius: 16, border: '1.5px solid #e8ecf4', display: 'inline-block', minWidth: 280, boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}>
+                   <p style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#94a3b8', marginBottom: 8 }}>Amount to pay</p>
+                   <p style={{ fontSize: 36, fontWeight: 900, color: '#6366f1', letterSpacing: '-0.03em' }}>{PLANS.find(p => p.id === formData.planType)?.price}</p>
+                </div>
+              </div>
+              
+              <div style={{ marginTop: 16 }}>
+                <button 
+                  onClick={handleProcessPayment} 
+                  className="submit-btn" 
+                  disabled={isProcessingPayment}
+                  style={{ background: isProcessingPayment ? '#e2e8f0' : 'linear-gradient(135deg, #10b981, #059669)', color: isProcessingPayment ? '#64748b' : 'white', maxWidth: 360, margin: '0 auto', boxShadow: isProcessingPayment ? 'none' : '0 8px 28px rgba(16, 185, 129, 0.35)' }}
+                >
+                  {isProcessingPayment ? (
+                    <>
+                      <div style={{ width: 18, height: 18, border: '3px solid rgba(100,116,139,0.4)', borderTopColor: '#64748b', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                      Processing...
+                    </>
+                  ) : (
+                    <>Pay Now (Dummy Gateway)</>
+                  )}
+                </button>
+                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 16, fontWeight: 600 }}>We'll add the live API key later.</p>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <form onSubmit={handleSubmitFinal} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+              
+              <div style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+                 <CheckCircle size={28} color="#10b981" />
+                 <div>
+                   <p style={{ fontSize: 15, fontWeight: 900, color: '#065f46' }}>Payment Successful!</p>
+                   <p style={{ fontSize: 13, color: '#047857', fontWeight: 500, marginTop: 2 }}>Please configure your staff credentials to finish registration.</p>
+                 </div>
+              </div>
+
+              {/* ── Section 4: Staff Credentials ── */}
+              <div>
+                <p className="section-title"><Users size={14} />Staff Credentials</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+                  {/* Admin */}
+                  <div className="cred-box">
+                    <div className="cred-box-header">
+                      <div className="cred-icon" style={{ background: '#eef2ff' }}>
+                        <Lock size={15} color="#6366f1" />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>Admin Credentials</p>
+                        <p style={{ fontSize: 11, color: '#94a3b8' }}>Restaurant manager access</p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div data-error={errors.adminUsername ? 'true' : undefined}>
+                        <label className="reg-label">Username *</label>
+                        <input className={`reg-input${errors.adminUsername ? ' error' : ''}`} value={formData.adminUsername} onChange={set('adminUsername')} placeholder="admin_user" autoComplete="off" />
+                        {errors.adminUsername && <p className="reg-error">⚠ {errors.adminUsername}</p>}
+                      </div>
+                      <div data-error={errors.adminPassword ? 'true' : undefined}>
+                        <label className="reg-label">Password *</label>
+                        <div className="input-wrap">
+                          <input className={`reg-input${errors.adminPassword ? ' error' : ''}`} value={formData.adminPassword} onChange={set('adminPassword')} placeholder="••••••••" type={showAdminPassword ? 'text' : 'password'} autoComplete="new-password" style={{ paddingRight: 44 }} />
+                          <button type="button" className="eye-btn" onClick={() => setShowAdminPassword(v => !v)}>{showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                        </div>
+                        {errors.adminPassword && <p className="reg-error">⚠ {errors.adminPassword}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Kitchen */}
+                  <div className="cred-box">
+                    <div className="cred-box-header">
+                      <div className="cred-icon" style={{ background: '#f0fdf4' }}>
+                        <ChefHat size={15} color="#16a34a" />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>Kitchen Credentials</p>
+                        <p style={{ fontSize: 11, color: '#94a3b8' }}>KOT display & order queue</p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div data-error={errors.kitchenUsername ? 'true' : undefined}>
+                        <label className="reg-label">Username *</label>
+                        <input className={`reg-input${errors.kitchenUsername ? ' error' : ''}`} value={formData.kitchenUsername} onChange={set('kitchenUsername')} placeholder="kitchen_user" autoComplete="off" />
+                        {errors.kitchenUsername && <p className="reg-error">⚠ {errors.kitchenUsername}</p>}
+                      </div>
+                      <div data-error={errors.kitchenPassword ? 'true' : undefined}>
+                        <label className="reg-label">Password *</label>
+                        <div className="input-wrap">
+                          <input className={`reg-input${errors.kitchenPassword ? ' error' : ''}`} value={formData.kitchenPassword} onChange={set('kitchenPassword')} placeholder="••••••••" type={showKitchenPassword ? 'text' : 'password'} autoComplete="new-password" style={{ paddingRight: 44 }} />
+                          <button type="button" className="eye-btn" onClick={() => setShowKitchenPassword(v => !v)}>{showKitchenPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                        </div>
+                        {errors.kitchenPassword && <p className="reg-error">⚠ {errors.kitchenPassword}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Captain */}
+                  <div className="cred-box">
+                    <div className="cred-box-header">
+                      <div className="cred-icon" style={{ background: '#fff7ed' }}>
+                        <Users size={15} color="#ea580c" />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>Captain Credentials</p>
+                        <p style={{ fontSize: 11, color: '#94a3b8' }}>Floor staff & order relay</p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div data-error={errors.captainUsername ? 'true' : undefined}>
+                        <label className="reg-label">Username *</label>
+                        <input className={`reg-input${errors.captainUsername ? ' error' : ''}`} value={formData.captainUsername} onChange={set('captainUsername')} placeholder="captain_user" autoComplete="off" />
+                        {errors.captainUsername && <p className="reg-error">⚠ {errors.captainUsername}</p>}
+                      </div>
+                      <div data-error={errors.captainPassword ? 'true' : undefined}>
+                        <label className="reg-label">Password *</label>
+                        <div className="input-wrap">
+                          <input className={`reg-input${errors.captainPassword ? ' error' : ''}`} value={formData.captainPassword} onChange={set('captainPassword')} placeholder="••••••••" type={showCaptainPassword ? 'text' : 'password'} autoComplete="new-password" style={{ paddingRight: 44 }} />
+                          <button type="button" className="eye-btn" onClick={() => setShowCaptainPassword(v => !v)}>{showCaptainPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                        </div>
+                        {errors.captainPassword && <p className="reg-error">⚠ {errors.captainPassword}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <div>
+                <button type="submit" className="submit-btn" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <div style={{ width: 18, height: 18, border: '3px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                      Finalizing Account...
+                    </>
+                  ) : (
+                    <>Create Restaurant Account <ArrowRight size={18} /></>
+                  )}
+                </button>
+              </div>
+
+            </form>
+          )}
+
+          <style>{`
+            @keyframes spin { to { transform: rotate(360deg); } }
+          `}</style>
+        </div>
+      </div>
+
+      <p style={{ display: 'none' }}>Server Sundaram · PaaS Multi-Tenant Solution</p>
+    </div>
+  );
 };
 
 export default HotelRegistration;

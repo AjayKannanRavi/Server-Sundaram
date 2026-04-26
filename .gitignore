@@ -13,6 +13,7 @@ frontend/.env.*
 !frontend/.env.example
 
 # Java build output
+*.class
 backend/target/
 backend/com/
 backend/*.class
@@ -26,6 +27,10 @@ backend/output*.txt
 backend/run_output.txt
 backend/startup_*.log
 backend/debug_compile.txt
+backend.log
+backend/uploads/
+uploads/
+scratch/
 
 # Frontend build output and local logs
 frontend/node_modules/

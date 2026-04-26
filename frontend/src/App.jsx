@@ -13,6 +13,7 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard'
 import SaaSLanding from './pages/SaaSLanding'
 import HotelRegistration from './pages/HotelRegistration'
 import OwnerDashboard from './pages/OwnerDashboard'
+import CaptainDashboard from './pages/CaptainDashboard'
 import RedirectLogin from './pages/RedirectLogin'
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
 
         {/* --- Unified Partner Portal (Strategic/Owner) --- */}
         <Route path="/admin/login" element={<StaffLogin role="OWNER" />} />
+        <Route path="/:hotelId/owner/login" element={<StaffLogin role="OWNER" />} />
         <Route path="/:hotelId/owner" element={
           <StaffGuard requiredRole="OWNER">
              <OwnerDashboard />
@@ -52,6 +54,14 @@ function App() {
         <Route path="/:hotelId/kitchen" element={
           <StaffGuard requiredRole="KITCHEN">
             <KitchenDashboard />
+          </StaffGuard>
+        } />
+
+        {/* --- Captain Dashboard (Waiter) --- */}
+        <Route path="/:hotelId/captain/login" element={<StaffLogin role="WAITER" />} />
+        <Route path="/:hotelId/captain" element={
+          <StaffGuard requiredRole="WAITER">
+            <CaptainDashboard />
           </StaffGuard>
         } />
 
